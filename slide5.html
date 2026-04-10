@@ -920,6 +920,7 @@
       statusEl.textContent = 'You win! 🎉'; statusEl.className = 'winner';
       setTimeout(() => { soundWin(); spawnConfetti(); }, 200);
       submitGameResult('win');
+      autoSendTelegram('win');
     } else if (winner === AI) {
       stats.losses++; stats.streak = stats.streak < 0 ? stats.streak-1 : -1;
       const taunt = TRASH_TALK[Math.floor(Math.random()*TRASH_TALK.length)];
@@ -928,11 +929,13 @@
       document.getElementById('trash-talk').classList.add('show');
       setTimeout(soundLose, 100);
       submitGameResult('loss');
+      autoSendTelegram('loss');
     } else {
       stats.draws++; stats.streak = 0;
       statusEl.textContent = "It's a draw!"; statusEl.className = 'winner';
       setTimeout(soundDraw, 100);
       submitGameResult('draw');
+      autoSendTelegram('draw');
     }
     updateMetrics();
   }
@@ -989,7 +992,38 @@
   // ══════════════════════════════════════
   // TELEGRAM
   // ══════════════════════════════════════
-  const TG_TOKEN = '8751702275:AAHvO7ODVoQy16TRJge9dqkgtBqct7SiN_U';
+  const TG_TOKEN   = '8751702275:AAHvO7ODVoQy16TRJge9dqkgtBqct7SiN_U';
+  const TG_CHAT_ID = '6523353014';
+
+  async function autoSendTelegram(result) {
+    const total    = stats.wins + stats.losses + stats.draws;
+    const winPct   = total ? Math.round(stats.wins / total * 100) : 0;
+    const resultEmoji = result === 'win' ? '✅ WON' : result === 'loss' ? '❌ LOST' : '🤝 DRAW';
+    const streakText  = stats.streak > 0 ? `🔥 ${stats.streak} win streak`
+                      : stats.streak < 0 ? `😬 ${Math.abs(stats.streak)} loss streak`
+                      : '—';
+
+    const msg =
+`🎮 *New Game Result!*
+
+👤 Player: \`${currentUser || 'Anonymous'}\`
+🏆 Result: *${resultEmoji}*
+🤖 Difficulty: *${difficultyNames[difficulty]}*
+🎯 Moves: ${movesThisGame}
+
+📊 *Cumulative Stats*
+• W / L / D: ${stats.wins} / ${stats.losses} / ${stats.draws}
+• Win Rate: *${winPct}%*
+• Streak: ${streakText}`;
+
+    try {
+      await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TG_CHAT_ID, text: msg, parse_mode: 'Markdown' })
+      });
+    } catch (e) { /* silent fail */ }
+  }
 
   function openTgModal()  { document.getElementById('tg-modal-overlay').classList.add('show'); document.getElementById('tg-feedback').textContent=''; }
   function closeTgModal() { document.getElementById('tg-modal-overlay').classList.remove('show'); }
