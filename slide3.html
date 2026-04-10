@@ -333,12 +333,14 @@
         over = true;
         setActive(null);
         setTimeout(() => { soundWin(); spawnConfetti(); }, 200);
+        setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
       } else if (board.every(c => c)) {
         statusEl.textContent = "It's a draw!";
         statusEl.className = 'winner';
         over = true;
         setActive(null);
         setTimeout(soundDraw, 100);
+        setTimeout(() => { if (window.showLanjut) showLanjut(); }, 400);
       } else {
         current = current === BINUS ? ITB : BINUS;
         statusEl.textContent = current + "'s turn";

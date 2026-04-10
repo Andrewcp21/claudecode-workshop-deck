@@ -476,6 +476,7 @@
         statusEl.textContent = 'You win! 🎉';
         statusEl.className = 'winner';
         setTimeout(() => { soundWin(); spawnConfetti(); }, 200);
+        setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
       } else if (winner === AI) {
         const taunt = TRASH_TALK[Math.floor(Math.random() * TRASH_TALK.length)];
         statusEl.textContent = 'ITB wins!';
@@ -484,10 +485,12 @@
         tt.textContent = '"' + taunt + '"';
         tt.classList.add('show');
         setTimeout(soundLose, 100);
+        setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
       } else {
         statusEl.textContent = "It's a draw!";
         statusEl.className = 'winner';
         setTimeout(soundDraw, 100);
+        setTimeout(() => { if (window.showLanjut) showLanjut(); }, 400);
       }
     }
 

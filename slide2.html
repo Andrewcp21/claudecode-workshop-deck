@@ -188,11 +188,13 @@
         statusEl.className = 'winner';
         over = true;
         setActive(null);
+        if (window.showLanjut) showLanjut();
       } else if (board.every(c => c)) {
         statusEl.textContent = "It's a draw!";
         statusEl.className = 'winner';
         over = true;
         setActive(null);
+        if (window.showLanjut) showLanjut();
       } else {
         current = current === BINUS ? ITB : BINUS;
         statusEl.textContent = current + "'s turn";

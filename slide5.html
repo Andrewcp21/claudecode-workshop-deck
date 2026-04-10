@@ -725,6 +725,7 @@
     ls.classList.add('hide');
     setTimeout(() => { ls.style.display = 'none'; }, 500);
     document.getElementById('app').classList.add('visible');
+    setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
     // Restore saved chat ID
     const saved = localStorage.getItem('tg_chat_id');
     if (saved) document.getElementById('tg-chat-id').value = saved;

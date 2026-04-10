@@ -58,9 +58,11 @@
       if (winner) {
         document.getElementById('status').textContent = 'Player ' + winner + ' wins!';
         over = true;
+        if (window.showLanjut) showLanjut();
       } else if (board.every(c => c)) {
         document.getElementById('status').textContent = "It's a draw!";
         over = true;
+        if (window.showLanjut) showLanjut();
       } else {
         current = current === 'X' ? 'O' : 'X';
         document.getElementById('status').textContent = "Player " + current + "'s turn";

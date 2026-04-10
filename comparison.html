@@ -385,6 +385,7 @@
     // Just render the HTML with a brief delay for effect
     setTimeout(() => {
       textEl.innerHTML = fullHTML;
+      if (window.showLanjut) showLanjut();
     }, 180);
   }
 
@@ -398,6 +399,7 @@
     responseEl.classList.add('visible');
     video.currentTime = 0;
     video.play().catch(() => {});
+    if (window.showLanjut) showLanjut();
   }
 
   // Enter key support

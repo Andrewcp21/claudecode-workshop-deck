@@ -573,6 +573,7 @@ function doLogin() {
   ls.classList.add('hide');
   setTimeout(() => { ls.style.display = 'none'; initThree(); }, 500);
   document.getElementById('app').classList.add('visible');
+  setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
   const saved = localStorage.getItem('tg_chat_id');
   if (saved) document.getElementById('tg-chat-id').value = saved;
   renderLeaderboard('weekly');

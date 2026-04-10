@@ -12,93 +12,21 @@
     'slide6.html',
   ];
 
-  const current = location.pathname.split('/').pop() || 'index.html';
+  const current = location.pathname.split('/').pop() || '';
   const idx = SLIDES.indexOf(current);
-  if (idx === -1) return; // not a slide page
+  if (idx === -1) return;
 
-  const prev = idx > 0 ? SLIDES[idx - 1] : null;
   const next = idx < SLIDES.length - 1 ? SLIDES[idx + 1] : null;
+  const prev = idx > 0 ? SLIDES[idx - 1] : null;
 
-  // ── Inject styles ──────────────────────────────────────────────────────────
-  const style = document.createElement('style');
-  style.textContent = `
-    #slide-nav {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-radius: 999px;
-      padding: 8px 16px;
-      z-index: 99999;
-      font-family: 'IBM Plex Mono', 'Red Hat Display', monospace, sans-serif;
-      user-select: none;
-      transition: opacity 0.3s;
-    }
-    #slide-nav.hidden { opacity: 0; pointer-events: none; }
-    #slide-nav button {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 6px;
-      transition: background 0.15s;
-      line-height: 1;
-    }
-    #slide-nav button:hover { background: rgba(255,255,255,0.15); }
-    #slide-nav button:disabled { opacity: 0.25; cursor: default; }
-    #slide-nav button:disabled:hover { background: none; }
-    #slide-nav .nav-counter {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      color: rgba(255,255,255,0.7);
-      min-width: 48px;
-      text-align: center;
-    }
-    #slide-nav .nav-home {
-      font-size: 13px;
-      color: rgba(255,255,255,0.5);
-      text-decoration: none;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: background 0.15s, color 0.15s;
-    }
-    #slide-nav .nav-home:hover {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
-    }
-  `;
-  document.head.appendChild(style);
+  function goNext() { if (next) location.href = next; }
+  function goPrev() { if (prev) location.href = prev; }
 
-  // ── Inject HTML ────────────────────────────────────────────────────────────
-  const nav = document.createElement('div');
-  nav.id = 'slide-nav';
-  nav.innerHTML = `
-    <a class="nav-home" href="index.html" title="All slides">⊞</a>
-    <button id="nav-prev" title="Previous (←)" ${!prev ? 'disabled' : ''}>←</button>
-    <span class="nav-counter">${idx + 1} / ${SLIDES.length}</span>
-    <button id="nav-next" title="Next (→)" ${!next ? 'disabled' : ''}>→</button>
-  `;
-  document.body.appendChild(nav);
-
-  // ── Navigation ─────────────────────────────────────────────────────────────
-  function go(url) { if (url) location.href = url; }
-
-  document.getElementById('nav-prev').addEventListener('click', () => go(prev));
-  document.getElementById('nav-next').addEventListener('click', () => go(next));
-
-  // Keyboard
+  // Keyboard navigation
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(next);
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(prev);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goNext();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goPrev();
   });
 
   // Touch swipe
@@ -108,19 +36,71 @@
   }, { passive: true });
   document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) < 50) return; // too short
-    if (dx < 0) go(next);  // swipe left → next
-    if (dx > 0) go(prev);  // swipe right → prev
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) goNext();
+    if (dx > 0) goPrev();
   }, { passive: true });
 
-  // Auto-hide after 3s of no mouse movement, show on move
-  let hideTimer = null;
-  function showNav() {
-    nav.classList.remove('hidden');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => nav.classList.add('hidden'), 3000);
-  }
-  document.addEventListener('mousemove', showNav);
-  document.addEventListener('touchstart', showNav, { passive: true });
-  showNav();
+  // ── Lanjut CTA ──────────────────────────────────────────────────────────────
+  if (!next) return; // last slide — no button needed
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #lanjut-btn {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      background: #fede3e;
+      color: #000;
+      font-family: 'Red Hat Display', 'IBM Plex Sans', 'Segoe UI', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 99999;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px);
+      transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #lanjut-btn.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    #lanjut-btn:hover  { background: #f5d200; transform: translateY(0) scale(1.04); }
+    #lanjut-btn:active { transform: translateY(0) scale(0.97); }
+    @media (max-width: 480px) {
+      #lanjut-btn {
+        bottom: 80px;
+        right: 50%;
+        transform: translateX(50%) translateY(16px);
+        width: calc(100% - 48px);
+        text-align: center;
+      }
+      #lanjut-btn.show {
+        transform: translateX(50%) translateY(0);
+      }
+      #lanjut-btn:hover  { transform: translateX(50%) translateY(0) scale(1.04); }
+      #lanjut-btn:active { transform: translateX(50%) translateY(0) scale(0.97); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const btn = document.createElement('button');
+  btn.id = 'lanjut-btn';
+  btn.textContent = 'Lanjut!';
+  btn.addEventListener('click', goNext);
+  btn.addEventListener('touchend', e => { e.preventDefault(); goNext(); }, { passive: false });
+  document.body.appendChild(btn);
+
+  window.showLanjut = function () {
+    btn.classList.add('show');
+  };
 })();
