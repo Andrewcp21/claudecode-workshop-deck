@@ -275,15 +275,6 @@
     }
     #reset-btn:hover { background: #f5d200; transform: scale(0.98); }
 
-    #telegram-btn {
-      font-family: 'Red Hat Display', sans-serif; font-weight: 700; font-size: 14px;
-      padding: 10px 22px; cursor: pointer; border: 1.5px solid #229ed9;
-      border-radius: 8px; background: #fff; color: #229ed9;
-      transition: background 0.15s, transform 0.1s; display: flex; align-items: center; gap: 7px;
-    }
-    #telegram-btn:hover { background: #e8f4fb; transform: scale(0.98); }
-    #telegram-btn svg { width: 16px; height: 16px; fill: #229ed9; }
-
     /* Confetti */
     #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
 
@@ -354,44 +345,6 @@
     .plan.popular .plan-btn:hover { background: #f5d200; }
 
     /* ══════════════════════════════════════
-       TELEGRAM CHAT ID MODAL
-    ══════════════════════════════════════ */
-    #tg-modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 8500;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    #tg-modal-overlay.show { opacity: 1; pointer-events: all; }
-
-    .tg-modal {
-      background: #fff; border-radius: 16px; padding: 32px 28px;
-      width: 360px; max-width: 90vw; text-align: center;
-      transform: translateY(16px); transition: transform 0.2s;
-    }
-    #tg-modal-overlay.show .tg-modal { transform: translateY(0); }
-    .tg-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .tg-modal p  { font-size: 12px; color: #888; margin-bottom: 18px; line-height: 1.6; }
-    .tg-modal p a { color: #229ed9; }
-    .tg-modal input {
-      width: 100%; border: 1.5px solid #ddd; border-radius: 8px;
-      padding: 11px 14px; font-family: inherit; font-size: 14px;
-      margin-bottom: 12px; outline: none;
-    }
-    .tg-modal input:focus { border-color: #229ed9; }
-    .tg-send-btn {
-      width: 100%; padding: 12px; border: none; border-radius: 8px;
-      background: #229ed9; color: #fff; font-family: inherit; font-weight: 700;
-      font-size: 14px; cursor: pointer; transition: background 0.15s;
-    }
-    .tg-send-btn:hover { background: #1a8abf; }
-    #tg-feedback { font-size: 12px; margin-top: 8px; min-height: 18px; }
-    #tg-feedback.ok  { color: #17AC62; }
-    #tg-feedback.err { color: #ef3d58; }
-
-    /* ══════════════════════════════════════
        TOAST
     ══════════════════════════════════════ */
     #toast {
@@ -456,7 +409,7 @@
       .card-header { margin-bottom: 14px; padding-bottom: 12px; }
 
       /* Buttons */
-      #reset-btn, #telegram-btn { padding: 11px 20px; font-size: 13px; }
+      #reset-btn { padding: 11px 20px; font-size: 13px; }
       .game-actions { gap: 8px; }
 
       /* Pricing modal — single column */
@@ -555,7 +508,6 @@
       <div class="sidebar-item" onclick="showToast('Requires Pro plan')"><span class="sidebar-icon">🏆</span> Achievements</div>
       <div class="sidebar-item" onclick="showToast('Requires Pro plan')"><span class="sidebar-icon">🤖</span> AI Models</div>
       <div class="sidebar-section" style="margin-top:12px">Settings</div>
-      <div class="sidebar-item" onclick="openTgModal()"><span class="sidebar-icon">✈️</span> Telegram</div>
       <div class="sidebar-item" onclick="openPricing()"><span class="sidebar-icon">💳</span> Billing</div>
       <div class="sidebar-item" onclick="doLogout()"><span class="sidebar-icon">🚪</span> Logout</div>
     </aside>
@@ -569,7 +521,6 @@
           <div class="page-subtitle">Tic-Tac-Toe · AI Engine v2.4 · Minimax + Alpha-Beta Pruning</div>
         </div>
         <div class="header-actions">
-          <button class="action-btn" onclick="openTgModal()">✈️ Share Stats</button>
           <button class="action-btn primary" onclick="openPricing()">⚡ Upgrade</button>
         </div>
       </div>
@@ -618,10 +569,6 @@
 
         <div class="game-actions">
           <button id="reset-btn" onclick="reset()">New Game</button>
-          <button id="telegram-btn" onclick="openTgModal()">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg>
-            Send Stats
-          </button>
         </div>
 
       </div>
@@ -674,20 +621,6 @@
   </div>
 </div>
 
-<!-- ══ TELEGRAM MODAL ══ -->
-<div id="tg-modal-overlay">
-  <div class="tg-modal">
-    <h3>✈️ Send Stats to Telegram</h3>
-    <p>Enter your Telegram Chat ID to receive your game stats.<br>
-       Get it by messaging <a href="#" onclick="return false">@userinfobot</a> on Telegram.</p>
-    <input type="text" id="tg-chat-id" placeholder="e.g. 123456789">
-    <div id="tg-feedback"></div>
-    <button class="tg-send-btn" onclick="sendTelegram()">Send Stats</button>
-    <br><br>
-    <button onclick="closeTgModal()" style="background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;">Cancel</button>
-  </div>
-</div>
-
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -728,9 +661,6 @@
     setTimeout(() => { ls.style.display = 'none'; }, 500);
     document.getElementById('app').classList.add('visible');
     setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
-    // Restore saved chat ID
-    const saved = localStorage.getItem('tg_chat_id');
-    if (saved) document.getElementById('tg-chat-id').value = saved;
   }
 
   function doLogout() {
@@ -1023,59 +953,6 @@
         body: JSON.stringify({ chat_id: TG_CHAT_ID, text: msg, parse_mode: 'Markdown' })
       });
     } catch (e) { /* silent fail */ }
-  }
-
-  function openTgModal()  { document.getElementById('tg-modal-overlay').classList.add('show'); document.getElementById('tg-feedback').textContent=''; }
-  function closeTgModal() { document.getElementById('tg-modal-overlay').classList.remove('show'); }
-  document.getElementById('tg-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeTgModal(); });
-
-  async function sendTelegram() {
-    const chatId = document.getElementById('tg-chat-id').value.trim();
-    const fb = document.getElementById('tg-feedback');
-    if (!chatId) { fb.textContent = 'Please enter your Chat ID.'; fb.className = 'err'; return; }
-    localStorage.setItem('tg_chat_id', chatId);
-
-    const total = stats.wins + stats.losses + stats.draws;
-    const winPct = total ? Math.round(stats.wins/total*100) : 0;
-    const avg = stats.gamesWithMoves ? (stats.totalMoves/stats.gamesWithMoves).toFixed(1) : '—';
-    const streakText = stats.streak > 0 ? `🔥 ${stats.streak} win streak` : stats.streak < 0 ? `😬 ${Math.abs(stats.streak)} loss streak` : '— no streak';
-
-    const msg =
-`🎮 *GameIQ Pro — Game Stats Report*
-
-👤 Player: \`${currentUser || 'Anonymous'}\`
-📅 Date: ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})}
-🤖 AI Difficulty: *${difficultyNames[difficulty]}*
-
-📊 *Session Summary*
-• Total Games: ${total}
-• Wins: ${stats.wins} ✅
-• Losses: ${stats.losses} ❌
-• Draws: ${stats.draws} 🤝
-• Win Rate: *${winPct}%*
-• Avg Moves/Game: ${avg}
-• Streak: ${streakText}
-
-_Sent from GameIQ Pro Enterprise Platform_`;
-
-    fb.textContent = 'Sending…'; fb.className = '';
-    try {
-      const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        fb.textContent = '✓ Stats sent successfully!'; fb.className = 'ok';
-        showToast('Stats sent to Telegram!');
-        setTimeout(closeTgModal, 1500);
-      } else {
-        fb.textContent = 'Error: ' + (data.description || 'Unknown error'); fb.className = 'err';
-      }
-    } catch(e) {
-      fb.textContent = 'Network error. Check your connection.'; fb.className = 'err';
-    }
   }
 
   // ══════════════════════════════════════
