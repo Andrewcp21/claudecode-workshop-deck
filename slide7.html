@@ -164,12 +164,13 @@
     /* meme pop */
     #meme-pop {
       position: fixed;
-      bottom: -260px;
+      bottom: -110vh;
       left: 50%;
-      transform: translateX(-50%) scale(0.6);
-      width: 220px;
-      border-radius: 12px;
-      box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+      transform: translateX(-50%) scale(0.8);
+      height: 100vh;
+      width: auto;
+      max-width: 100vw;
+      object-fit: contain;
       z-index: 99998;
       opacity: 0;
       transition: none;
@@ -185,13 +186,13 @@
     }
 
     @keyframes meme-bounce {
-      0%   { bottom: -260px; opacity: 0; transform: translateX(-50%) scale(0.6); }
-      100% { bottom: 100px;  opacity: 1; transform: translateX(-50%) scale(1); }
+      0%   { bottom: -110vh; opacity: 0; transform: translateX(-50%) scale(0.8); }
+      100% { bottom: 0;      opacity: 1; transform: translateX(-50%) scale(1); }
     }
 
     @keyframes meme-exit {
-      0%   { bottom: 100px; opacity: 1; transform: translateX(-50%) scale(1); }
-      100% { bottom: -260px; opacity: 0; transform: translateX(-50%) scale(0.7); }
+      0%   { bottom: 0;      opacity: 1; transform: translateX(-50%) scale(1); }
+      100% { bottom: -110vh; opacity: 0; transform: translateX(-50%) scale(0.8); }
     }
 
     /* floating submit button */
