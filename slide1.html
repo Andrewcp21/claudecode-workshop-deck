@@ -1,20 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tic-Tac-Toe</title>
   <style>
-    body { font-family: monospace; text-align: center; margin: 50px; background: white; color: black; }
-    h1 { font-size: 24px; }
-    #board { display: inline-grid; grid-template-columns: repeat(3, 100px); gap: 0; margin: 20px auto; }
+    body { font-family: monospace; text-align: center; margin: 0; padding: clamp(20px, 6vw, 50px); background: white; color: black; }
+    h1 { font-size: clamp(18px, 5vw, 24px); }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: min(320px, 90vw);
+      gap: 0;
+      margin: 20px auto;
+    }
     .cell {
-      width: 100px; height: 100px;
+      aspect-ratio: 1;
+      width: 100%;
       border: 2px solid black;
-      font-size: 48px; font-weight: bold;
+      font-size: clamp(28px, 10vw, 48px); font-weight: bold;
       cursor: pointer; background: white; color: black;
+      touch-action: manipulation;
     }
     .cell:hover { background: #eee; }
-    #status { font-size: 18px; margin: 10px; }
-    button { font-size: 16px; padding: 8px 20px; cursor: pointer; border: 2px solid black; background: white; }
+    #status { font-size: clamp(14px, 4vw, 18px); margin: 10px; }
+    button { font-size: clamp(13px, 3.5vw, 16px); padding: 8px 20px; cursor: pointer; border: 2px solid black; background: white; touch-action: manipulation; }
     button:hover { background: black; color: white; }
   </style>
 </head>
