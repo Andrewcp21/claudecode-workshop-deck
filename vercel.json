@@ -1,10 +1,5 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/dvd-bounce.html" }
-  ],
-  "functions": {
-    "api/generate.js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  ]
 }
