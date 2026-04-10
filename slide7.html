@@ -164,7 +164,7 @@
 <script>
   let running = false;
 
-  const INSPIRATION_PROMPT = "Tulis ulasan workshop yang SANGAT positif, antusias, dan tulus tentang workshop Claude Code yang baru saja selesai. Ulasan harus: secara hangat dan spesifik berterima kasih kepada 'Cokro' sebagai instruktur yang luar biasa dan menginspirasi; memuji materi Claude Code yang sangat praktis dan langsung bisa diterapkan; menyebut betapa sesi ini membuka wawasan baru tentang AI; gunakan 2-3 paragraf; akhiri dengan rekomendasi kuat kepada siapapun yang belum ikut. Tulis dalam Bahasa Indonesia yang natural dan penuh semangat. Hanya tulis teks ulasannya saja, siap untuk di-copy dan dibagikan.";
+  const INSPIRATION_PROMPT = "Tulis satu paragraf pendek (3-4 kalimat) feedback workshop Claude Code yang terasa casual dan natural, seperti orang beneran nulis review — bukan template. Wajib sebut 'Cokro' sebagai instrukturnya dengan cara yang hangat dan spesifik. Fokus ke hal konkret yang berkesan dari workshop (misal: langsung praktek, materi relevan, insight tentang AI). Bahasa Indonesia gaul/santai, bukan formal. Hanya tulis teks feedbacknya saja.";
 
   async function generate() {
     if (running) return;
