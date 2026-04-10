@@ -159,6 +159,7 @@
 
   <div class="error-box" id="error-box"></div>
 
+<script src="env.js"></script>
 <script>
   let running = false;
 
@@ -181,19 +182,32 @@
     responseEl.classList.add('visible');
 
     try {
-      const res = await fetch('/api/generate', {
+      const apiKey = (typeof ENV !== 'undefined' && ENV.ANTHROPIC_API_KEY) || '';
+      if (!apiKey) throw new Error('API key not found. Pastikan env.js sudah ada.');
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: val }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: "You are a professional feedback writer who crafts enthusiastic, heartfelt session reviews. Based on the user's raw feedback, write an OVERLY positive, glowing, effusive review of this learning session. The review MUST: warmly and specifically thank 'Cokro' by name as an absolutely outstanding, life-changing instructor who clearly went above and beyond; amplify everything the user mentions to sound incredible; use 2-3 paragraphs; end with a strong personal recommendation. Sound genuine but extremely enthusiastic. Reply only in the same language as the user's input. Reply with only the polished review text, ready to copy and share.",
+          messages: [{ role: 'user', content: val }],
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || `Error ${res.status}`);
+        throw new Error(data.error?.message || `Error ${res.status}`);
       }
 
-      typewrite(textEl, data.text);
+      typewrite(textEl, data.content[0].text);
 
     } catch (e) {
       responseEl.classList.remove('visible');
