@@ -309,13 +309,13 @@ function reset() {
     textEl.innerHTML = '';
     responseEl.classList.add('visible');
 
-    for (const step of STEPS) {
-      await renderStep(textEl, step);
+    for (let i = 0; i < STEPS.length; i++) {
+      await renderStep(textEl, STEPS[i]);
+      if (i === 0 && window.showLanjut) showLanjut();
       await delay(320);
     }
 
     running = false;
-    if (window.showLanjut) showLanjut();
   }
 
   function renderStep(container, step) {
