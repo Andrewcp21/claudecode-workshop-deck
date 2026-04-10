@@ -10,6 +10,7 @@
     'slide4.html',
     'slide5.html',
     'slide6.html',
+    'slide7.html',
   ];
 
   const current = location.pathname.split('/').pop() || '';

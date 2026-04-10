@@ -990,19 +990,21 @@ function endGame(winLine, winner) {
     stats.wins++; stats.streak = stats.streak>0 ? stats.streak+1 : 1;
     statusEl.textContent='You win! 🎉'; statusEl.className='winner';
     setTimeout(()=>{ soundWin(); spawnConfetti(); },200);
+    submitGameResult('win').then(()=>renderLeaderboard(activeLbTab));
   } else if (winner===AI) {
     stats.losses++; stats.streak = stats.streak<0 ? stats.streak-1 : -1;
     statusEl.textContent='ITB wins!'; statusEl.className='loser';
     document.getElementById('trash-talk').textContent = '"'+TRASH_TALK[Math.floor(Math.random()*TRASH_TALK.length)]+'"';
     document.getElementById('trash-talk').classList.add('show');
     setTimeout(soundLose,100);
+    submitGameResult('loss').then(()=>renderLeaderboard(activeLbTab));
   } else {
     stats.draws++; stats.streak=0;
     statusEl.textContent="It's a draw!"; statusEl.className='winner';
     setTimeout(soundDraw,100);
+    submitGameResult('draw').then(()=>renderLeaderboard(activeLbTab));
   }
   updateMetrics();
-  renderLeaderboard('weekly');
 }
 
 function resetGame() {
@@ -1029,37 +1031,34 @@ function resetGame() {
 }
 
 // ══════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════
+const SB_URL = 'https://mojbdsayviuihhootyir.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vamJkc2F5dml1aWhob290eWlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0OTIxNDQsImV4cCI6MjA4ODA2ODE0NH0.18J9GxpTpoFHFP-XN1zhWqaAwK7cjF2UI3eUkBjY5HE';
+
+async function submitGameResult(result) {
+  if (!currentUser) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/game_results`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`
+      },
+      body: JSON.stringify({
+        player_name: currentUser,
+        difficulty: difficultyNames[difficulty],
+        result,
+        move_count: movesThisGame
+      })
+    });
+  } catch (e) { /* silent fail */ }
+}
+
+// ══════════════════════════════════════
 // LEADERBOARD
 // ══════════════════════════════════════
-const LB_DATA = {
-  weekly: [
-    { name:'AndrewP',     score:2840, w:18, l:2,  avatar:'A' },
-    { name:'DewiS',       score:2610, w:15, l:4,  avatar:'D' },
-    { name:'BudiR',       score:2390, w:12, l:6,  avatar:'B' },
-    { name:'SariW',       score:2180, w:10, l:8,  avatar:'S' },
-    { name:'FarhanM',     score:1970, w:8,  l:9,  avatar:'F' },
-    { name:'YOU',         score:0,    w:0,  l:0,  avatar:'',  isYou:true },
-    { name:'RahmaK',      score:1450, w:6,  l:11, avatar:'R' },
-  ],
-  monthly: [
-    { name:'TitoG',       score:9120, w:64, l:10, avatar:'T' },
-    { name:'AndrewP',     score:8840, w:58, l:12, avatar:'A' },
-    { name:'MayaL',       score:7650, w:52, l:18, avatar:'M' },
-    { name:'DewiS',       score:7200, w:48, l:20, avatar:'D' },
-    { name:'YOU',         score:0,    w:0,  l:0,  avatar:'',  isYou:true },
-    { name:'HendraP',     score:5800, w:40, l:28, avatar:'H' },
-    { name:'SariW',       score:5100, w:35, l:33, avatar:'S' },
-  ],
-  alltime: [
-    { name:'FazriA',      score:48200, w:320, l:42, avatar:'F' },
-    { name:'TitoG',       score:41000, w:280, l:60, avatar:'T' },
-    { name:'AndrewP',     score:35000, w:230, l:80, avatar:'A' },
-    { name:'MayaL',       score:29000, w:195, l:95, avatar:'M' },
-    { name:'YOU',         score:0,     w:0,   l:0,  avatar:'',  isYou:true },
-    { name:'DewiS',       score:22000, w:148, l:120,avatar:'D' },
-    { name:'BudiR',       score:18000, w:120, l:140,avatar:'B' },
-  ]
-};
 let activeLbTab = 'weekly';
 
 function setLbTab(tab, el) {
@@ -1069,41 +1068,70 @@ function setLbTab(tab, el) {
   renderLeaderboard(tab);
 }
 
-function renderLeaderboard(tab) {
-  const data = JSON.parse(JSON.stringify(LB_DATA[tab]));
-  const youIdx = data.findIndex(r=>r.isYou);
-  if (youIdx !== -1) {
-    const total = stats.wins+stats.losses+stats.draws;
-    data[youIdx].name = currentUser || 'You';
-    data[youIdx].score = stats.wins*150 + stats.draws*40;
-    data[youIdx].w = stats.wins;
-    data[youIdx].l = stats.losses;
-    data[youIdx].avatar = (currentUser||'Y')[0].toUpperCase();
-    // Re-sort by score
-    data.sort((a,b)=>b.score-a.score);
+async function renderLeaderboard(tab) {
+  const lbList = document.getElementById('lb-list');
+  lbList.innerHTML = '<p style="color:#888;text-align:center;padding:24px">Loading…</p>';
+  try {
+    const now = new Date();
+    let dateFilter = '';
+    if (tab === 'weekly') {
+      const d = new Date(now); d.setDate(d.getDate()-7);
+      dateFilter = `&created_at=gte.${d.toISOString()}`;
+    } else if (tab === 'monthly') {
+      const d = new Date(now); d.setDate(d.getDate()-30);
+      dateFilter = `&created_at=gte.${d.toISOString()}`;
+    }
+
+    const res = await fetch(
+      `${SB_URL}/rest/v1/game_results?select=player_name,result${dateFilter}&order=created_at.desc`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+
+    if (!rows.length) {
+      lbList.innerHTML = '<p style="color:#888;text-align:center;padding:24px">No games yet — play first!</p>';
+      return;
+    }
+
+    // Aggregate by player
+    const map = {};
+    for (const r of rows) {
+      if (!map[r.player_name]) map[r.player_name] = { wins:0, losses:0, draws:0 };
+      if (r.result === 'win') map[r.player_name].wins++;
+      else if (r.result === 'loss') map[r.player_name].losses++;
+      else map[r.player_name].draws++;
+    }
+
+    const sorted = Object.entries(map)
+      .map(([name, s]) => ({
+        name,
+        w: s.wins, l: s.losses,
+        score: s.wins*150 + s.draws*40,
+        avatar: name[0].toUpperCase(),
+        isYou: name === currentUser
+      }))
+      .sort((a,b) => b.score - a.score || b.w - a.w);
+
+    const medals = ['gold','silver','bronze'];
+    const medalEmoji = ['🥇','🥈','🥉'];
+
+    lbList.innerHTML = sorted.map((row, i) => {
+      const rankClass = i<3 ? medals[i] : '';
+      const rankLabel = i<3 ? medalEmoji[i] : '#'+(i+1);
+      const winRate = (row.w+row.l) ? Math.round(row.w/(row.w+row.l)*100) : 0;
+      return `<div class="lb-row ${row.isYou?'me':''}">
+        <div class="lb-rank ${rankClass}">${rankLabel}</div>
+        <div class="lb-avatar" style="background:${row.isYou?'#fede3e':'#000'};color:${row.isYou?'#000':'#fede3e'}">${row.avatar}</div>
+        <div class="lb-info">
+          <div class="lb-name">${row.name} ${row.isYou?'<span class="lb-you-badge">YOU</span>':''}</div>
+          <div class="lb-stat">${row.w}W · ${row.l}L · ${winRate}% WR</div>
+        </div>
+        <div class="lb-score">${row.score.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    lbList.innerHTML = '<p style="color:#ef3d58;text-align:center;padding:24px">Failed to load leaderboard.</p>';
   }
-
-  const medals = ['gold','silver','bronze'];
-  const medalEmoji = ['🥇','🥈','🥉'];
-
-  const html = data.map((row,i) => {
-    const rankClass = i<3 ? medals[i] : '';
-    const rankLabel = i<3 ? medalEmoji[i] : '#'+(i+1);
-    const isYou = row.isYou || row.name === (currentUser||'You');
-    const winRate = (row.w+row.l) ? Math.round(row.w/(row.w+row.l)*100) : 0;
-    const bgColor = isYou ? 'me' : '';
-    return `<div class="lb-row ${bgColor}">
-      <div class="lb-rank ${rankClass}">${rankLabel}</div>
-      <div class="lb-avatar" style="background:${isYou?'#fede3e':'#000'};color:${isYou?'#000':'#fede3e'}">${row.avatar}</div>
-      <div class="lb-info">
-        <div class="lb-name">${row.name} ${isYou?'<span class="lb-you-badge">YOU</span>':''}</div>
-        <div class="lb-stat">${row.w}W · ${row.l}L · ${winRate}% WR</div>
-      </div>
-      <div class="lb-score">${row.score.toLocaleString()}</div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('lb-list').innerHTML = html;
 }
 
 // ══════════════════════════════════════
