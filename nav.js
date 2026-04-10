@@ -29,13 +29,17 @@
     if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goPrev();
   });
 
-  // Touch swipe
-  let touchStartX = 0;
+  // Touch swipe (ignore pinch/multi-touch)
+  let touchStartX = null;
   document.addEventListener('touchstart', e => {
+    if (e.touches.length > 1) { touchStartX = null; return; } // pinch — ignore
     touchStartX = e.touches[0].clientX;
   }, { passive: true });
   document.addEventListener('touchend', e => {
+    if (touchStartX === null) return;
+    if (e.touches.length > 0) return; // still multi-touch
     const dx = e.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
     if (Math.abs(dx) < 50) return;
     if (dx < 0) goNext();
     if (dx > 0) goPrev();
