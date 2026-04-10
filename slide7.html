@@ -17,7 +17,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 48px 20px 64px;
+      padding: 48px 20px 120px;
     }
 
     .heading {
@@ -65,7 +65,7 @@
 
     .prompt-input::placeholder { color: #bbb; }
 
-    .send-btn {
+    .inspire-btn {
       padding: 12px 18px;
       background: #111;
       color: #fff;
@@ -79,8 +79,8 @@
       white-space: nowrap;
     }
 
-    .send-btn:hover { background: #333; }
-    .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .inspire-btn:hover { background: #333; }
+    .inspire-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* response */
     .response {
@@ -92,16 +92,48 @@
 
     .response.visible { display: block; }
 
+    .response-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
     .response-box {
       background: #f7f7f8;
       border-radius: 8px;
-      padding: 24px 26px;
+      padding: 20px 22px;
       font-size: 14px;
       line-height: 1.8;
       color: #1a1a1a;
       font-weight: 300;
       white-space: pre-wrap;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+      position: relative;
     }
+
+    .response-box:hover {
+      background: #f0f0f2;
+      box-shadow: 0 0 0 2px #111;
+    }
+
+    .response-box::after {
+      content: '↑ klik untuk pakai';
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .response-box:hover::after { opacity: 1; }
 
     .error-box {
       background: #fff2f2;
@@ -129,12 +161,52 @@
 
     @keyframes blink { 50% { opacity: 0; } }
 
+    /* floating submit button */
+    #submit-btn {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      background: #111;
+      color: #fff;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      z-index: 99999;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px);
+      transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s;
+      touch-action: manipulation;
+    }
+
+    #submit-btn.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    #submit-btn:hover  { background: #333; }
+    #submit-btn:active { transform: translateY(0) scale(0.97); }
 
     @media (max-width: 640px) {
-      body { padding: 36px 16px 48px; }
+      body { padding: 36px 16px 120px; }
       .heading { font-size: 22px; }
       .prompt-input { font-size: 16px; }
-      .response-box { font-size: 13px; padding: 18px 16px; }
+      .response-box { font-size: 13px; padding: 16px 16px 28px; }
+      #submit-btn {
+        bottom: 80px;
+        right: 50%;
+        transform: translateX(50%) translateY(16px);
+        width: calc(100% - 48px);
+        text-align: center;
+      }
+      #submit-btn.show { transform: translateX(50%) translateY(0); }
+      #submit-btn:active { transform: translateX(50%) translateY(0) scale(0.97); }
     }
   </style>
 </head>
@@ -151,14 +223,17 @@
       placeholder="Tulis pengalamanmu…"
       autocomplete="off"
     />
-    <button class="send-btn" id="send-btn">Butuh Inspirasi ✨</button>
+    <button class="inspire-btn" id="send-btn">Butuh Inspirasi ✨</button>
   </div>
 
   <div class="response" id="response">
+    <p class="response-label">inspirasi — klik untuk pakai</p>
     <div class="response-box" id="response-text"></div>
   </div>
 
   <div class="error-box" id="error-box"></div>
+
+  <button id="submit-btn">Kirim Feedback →</button>
 
 <script src="env.js"></script>
 <script>
@@ -187,7 +262,6 @@
       let responseText;
 
       if (apiKey) {
-        // Local: call Anthropic directly using env.js key
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -206,7 +280,6 @@
         if (!res.ok) throw new Error(data.error?.message || `Error ${res.status}`);
         responseText = data.content[0].text;
       } else {
-        // Deployed: use Vercel serverless function
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -250,6 +323,35 @@
     el.textContent = '⚠ ' + msg;
     el.style.display = 'block';
   }
+
+  // Click inspiration → fill input
+  document.getElementById('response-text').addEventListener('click', () => {
+    const text = document.getElementById('response-text').textContent.trim();
+    if (!text) return;
+    const input = document.getElementById('main-input');
+    input.value = text;
+    input.focus();
+    updateSubmitBtn();
+  });
+
+  // Show/hide floating submit based on input content
+  function updateSubmitBtn() {
+    const val = document.getElementById('main-input').value.trim();
+    document.getElementById('submit-btn').classList.toggle('show', val.length > 0);
+  }
+
+  document.getElementById('main-input').addEventListener('input', updateSubmitBtn);
+
+  document.getElementById('submit-btn').addEventListener('click', () => {
+    const val = document.getElementById('main-input').value.trim();
+    if (!val) return;
+    // Open Google Forms or copy to clipboard as fallback
+    navigator.clipboard.writeText(val).then(() => {
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = 'Tersalin! ✓';
+      setTimeout(() => { btn.textContent = 'Kirim Feedback →'; }, 2000);
+    }).catch(() => {});
+  });
 
   document.getElementById('send-btn').addEventListener('click', generate);
 </script>
