@@ -76,6 +76,7 @@
     }
     #lanjut-btn:hover  { background: #f5d200; transform: translateY(0) scale(1.04); }
     #lanjut-btn:active { transform: translateY(0) scale(0.97); }
+    body.lanjut-visible { padding-bottom: 88px !important; }
     @media (max-width: 480px) {
       #lanjut-btn {
         bottom: 80px;
@@ -89,6 +90,7 @@
       }
       #lanjut-btn:hover  { transform: translateX(50%) translateY(0) scale(1.04); }
       #lanjut-btn:active { transform: translateX(50%) translateY(0) scale(0.97); }
+      body.lanjut-visible { padding-bottom: 160px !important; }
     }
   `;
   document.head.appendChild(style);
@@ -102,5 +104,6 @@
 
   window.showLanjut = function () {
     btn.classList.add('show');
+    document.body.classList.add('lanjut-visible');
   };
 })();
