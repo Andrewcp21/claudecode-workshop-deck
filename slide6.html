@@ -338,26 +338,8 @@
 
 <canvas id="confetti-canvas"></canvas>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <img src="Revou Logo.png" alt="RevoU">
-    <h2>GameIQ <em style="color:#fede3e;font-style:normal;">Pro</em></h2>
-    <p>Enterprise Gaming Analytics Platform</p>
-    <input class="login-field" id="login-email" type="email" placeholder="Work email" value="user@binus.ac.id">
-    <input class="login-field" id="login-pass" type="password" placeholder="Password">
-    <div id="login-error" class="login-error"></div>
-    <button class="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="sso-row">
-      <button class="sso-btn" onclick="doLogin()">🔵 Google SSO</button>
-      <button class="sso-btn" onclick="doLogin()">🟣 Microsoft SSO</button>
-    </div>
-    <p class="login-hint">Any password works — this is a demo ✨</p>
-  </div>
-</div>
-
 <!-- APP -->
-<div id="app">
+<div id="app" class="visible">
 
   <nav class="topnav">
     <div class="topnav-logo">
@@ -559,34 +541,17 @@
 
 <script>
 // ══════════════════════════════════════
-// AUTH
+// AUTO-INIT (user already logged in via slide5)
 // ══════════════════════════════════════
-let currentUser = '';
-
-function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) { document.getElementById('login-error').textContent = 'Please enter your email.'; return; }
-  currentUser = email.split('@')[0];
-  document.getElementById('nav-username').textContent = currentUser;
-  document.getElementById('nav-avatar').textContent = currentUser[0].toUpperCase();
-  const ls = document.getElementById('login-screen');
-  ls.classList.add('hide');
-  setTimeout(() => { ls.style.display = 'none'; initThree(); }, 500);
-  document.getElementById('app').classList.add('visible');
-  setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
-  const saved = localStorage.getItem('tg_chat_id');
-  if (saved) document.getElementById('tg-chat-id').value = saved;
+let currentUser = localStorage.getItem('gameiq_user') || 'Guest';
+document.getElementById('nav-username').textContent = currentUser;
+document.getElementById('nav-avatar').textContent = currentUser[0].toUpperCase();
+const saved6 = localStorage.getItem('tg_chat_id');
+if (saved6) document.getElementById('tg-chat-id').value = saved6;
+window.addEventListener('DOMContentLoaded', () => {
+  initThree();
   renderLeaderboard('weekly');
-}
-
-function doLogout() {
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-screen').classList.remove('hide');
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('login-pass').value = '';
-}
-
-document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+});
 
 // ══════════════════════════════════════
 // AUDIO

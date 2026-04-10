@@ -735,6 +735,7 @@
     const errEl = document.getElementById('login-error');
     if (!email) { errEl.textContent = 'Please enter your email.'; return; }
     currentUser = email.split('@')[0];
+    localStorage.setItem('gameiq_user', currentUser);
     document.getElementById('nav-username').textContent = currentUser;
     document.getElementById('nav-avatar').textContent = currentUser[0].toUpperCase();
     const ls = document.getElementById('login-screen');
