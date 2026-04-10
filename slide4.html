@@ -197,6 +197,25 @@
       pointer-events: none;
     }
 
+    /* Player name input */
+    .player-name-row {
+      margin-bottom: 14px;
+    }
+    #player-name {
+      font-family: 'Red Hat Display', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      padding: 9px 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      width: min(220px, 80vw);
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+    #player-name:focus { border-color: #fede3e; }
+
     #reset-btn {
       font-family: 'Red Hat Display', sans-serif;
       font-weight: 700;
@@ -231,6 +250,10 @@
 
   <h1>Tic-Tac-Toe vs AI</h1>
   <p class="subtitle">You are <strong>BINUS</strong> &nbsp;·&nbsp; AI is <strong>ITB</strong></p>
+
+  <div class="player-name-row">
+    <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+  </div>
 
   <div class="difficulty">
     <label>Difficulty</label>
@@ -477,6 +500,7 @@
         statusEl.className = 'winner';
         setTimeout(() => { soundWin(); spawnConfetti(); }, 200);
         setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
+        submitResult('win');
       } else if (winner === AI) {
         const taunt = TRASH_TALK[Math.floor(Math.random() * TRASH_TALK.length)];
         statusEl.textContent = 'ITB wins!';
@@ -486,11 +510,13 @@
         tt.classList.add('show');
         setTimeout(soundLose, 100);
         setTimeout(() => { if (window.showLanjut) showLanjut(); }, 600);
+        submitResult('loss');
       } else {
         statusEl.textContent = "It's a draw!";
         statusEl.className = 'winner';
         setTimeout(soundDraw, 100);
         setTimeout(() => { if (window.showLanjut) showLanjut(); }, 400);
+        submitResult('draw');
       }
     }
 
@@ -537,6 +563,28 @@
         if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]])
           return combo;
       return null;
+    }
+
+    // ── Supabase submit ──────────────────────────────────────────────────────
+    async function submitResult(result) {
+      const name = document.getElementById('player-name').value.trim() || 'Anonymous';
+      const diffNames = ['Easy', 'Medium', 'Hard'];
+      try {
+        await fetch('https://mojbdsayviuihhootyir.supabase.co/rest/v1/game_results', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vamJkc2F5dml1aWhob290eWlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0OTIxNDQsImV4cCI6MjA4ODA2ODE0NH0.18J9GxpTpoFHFP-XN1zhWqaAwK7cjF2UI3eUkBjY5HE',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vamJkc2F5dml1aWhob290eWlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0OTIxNDQsImV4cCI6MjA4ODA2ODE0NH0.18J9GxpTpoFHFP-XN1zhWqaAwK7cjF2UI3eUkBjY5HE'
+          },
+          body: JSON.stringify({
+            player_name: name,
+            difficulty: diffNames[difficulty],
+            result,
+            move_count: board.filter(v => v).length
+          })
+        });
+      } catch (e) { /* silent fail — demo continues regardless */ }
     }
 
     // ── Reset ────────────────────────────────────────────────────────────────
