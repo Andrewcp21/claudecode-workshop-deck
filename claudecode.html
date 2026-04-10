@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #ffffff;
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 64px;
+    }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .logo-wrap img {
+      max-height: 80px;
+      max-width: 320px;
+      object-fit: contain;
+    }
+
+    .col-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    .prompt-wrap {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      border: 1.5px solid #d4d4d4;
+      border-radius: 6px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .prompt-wrap:focus-within {
+      border-color: #333;
+    }
+
+    .prompt-input {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      color: #111;
+      border: none;
+      outline: none;
+      background: transparent;
+    }
+
+    .prompt-input::placeholder {
+      color: #bbb;
+    }
+
+    .send-btn {
+      padding: 12px 18px;
+      background: #111;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: #333;
+    }
+
+    /* ── Terminal output ── */
+    .terminal {
+      width: 100%;
+      max-width: 560px;
+      margin-top: 28px;
+      background: #0d0d0d;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .terminal.visible {
+      display: block;
+    }
+
+    .terminal-bar {
+      background: #1e1e1e;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot:nth-child(1) { background: #ff5f57; }
+    .terminal-dot:nth-child(2) { background: #febc2e; }
+    .terminal-dot:nth-child(3) { background: #28c840; }
+
+    .terminal-body {
+      padding: 16px 20px 20px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #ccc;
+      min-height: 80px;
+    }
+
+    .terminal-body .prompt-line {
+      color: #7eca7e;
+    }
+
+    .terminal-body .dim {
+      color: #555;
+    }
+
+    .terminal-body .highlight {
+      color: #fff;
+    }
+
+    .terminal-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: #7eca7e;
+      vertical-align: middle;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+      body {
+        padding: 36px 16px 48px;
+      }
+
+      .logo-wrap img {
+        max-height: 60px;
+        max-width: 240px;
+      }
+
+      .col-label {
+        margin-bottom: 24px;
+      }
+
+      .prompt-input {
+        font-size: 16px;
+      }
+
+      .terminal-body {
+        font-size: 12px;
+        padding: 14px 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-wrap">
+    <img src="images/Logo_ClaudeCode.png" alt="Claude Code" />
+  </div>
+  <p class="col-label">does it</p>
+
+  <div class="prompt-wrap">
+    <input
+      class="prompt-input"
+      id="claude-input"
+      type="text"
+      placeholder="Enter a prompt…"
+      autocomplete="off"
+    />
+    <button class="send-btn" id="send-btn">→</button>
+  </div>
+
+  <div class="terminal" id="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+    </div>
+    <div class="terminal-body" id="terminal-body"></div>
+  </div>
+
+<script>
+  function isTicTacToe(val) {
+    const v = val.trim().toLowerCase();
+    return v.includes('tic tac toe') || v.includes('tictactoe');
+  }
+
+  const LINES = [
+    { cls: 'prompt-line', text: '$ claude "buat tic tac toe"' },
+    { cls: 'dim',         text: '' },
+    { cls: '',            text: '● Reading context…' },
+    { cls: '',            text: '● Planning: HTML + CSS + JS game board' },
+    { cls: '',            text: '● Writing index.html' },
+    { cls: '',            text: '● Writing game logic (checkWin, reset)' },
+    { cls: 'highlight',   text: '✓ Done — opening in browser' },
+  ];
+
+  let running = false;
+
+  async function handleClaude() {
+    const input = document.getElementById('claude-input');
+    if (!isTicTacToe(input.value) || running) return;
+
+    running = true;
+    const terminal = document.getElementById('terminal');
+    const body = document.getElementById('terminal-body');
+
+    body.innerHTML = '';
+    terminal.classList.add('visible');
+
+    for (const line of LINES) {
+      await printLine(body, line);
+      await delay(line.text === '' ? 80 : 420);
+    }
+
+    await delay(600);
+    window.location.href = 'slide1.html';
+  }
+
+  function printLine(container, { cls, text }) {
+    return new Promise(resolve => {
+      const div = document.createElement('div');
+      if (cls) div.classList.add(cls);
+
+      if (text === '') {
+        container.appendChild(div);
+        resolve();
+        return;
+      }
+
+      container.appendChild(div);
+
+      // Add blinking cursor while typing
+      const cursor = document.createElement('span');
+      cursor.className = 'terminal-cursor';
+      div.appendChild(cursor);
+
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          cursor.before(text[i]);
+          i++;
+        } else {
+          clearInterval(interval);
+          cursor.remove();
+          resolve();
+        }
+      }, 28);
+    });
+  }
+
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  document.getElementById('send-btn').addEventListener('click', handleClaude);
+  document.getElementById('claude-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleClaude();
+  });
+</script>
+
+  <script src="nav.js"></script>
+</body>
+</html>

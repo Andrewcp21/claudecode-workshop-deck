@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM vs Claude Code</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #ffffff;
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .arena {
+      display: flex;
+      flex: 1;
+      min-height: 100vh;
+    }
+
+    /* ── Column ── */
+    .col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 40px 48px;
+      position: relative;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      width: 1px;
+      background: #e0e0e0;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .divider::before {
+      content: 'VS';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      color: #bbb;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      padding: 8px 0;
+    }
+
+    /* ── Logo ── */
+    .logo-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+      min-height: 72px;
+    }
+
+    .logo-wrap img {
+      max-height: 56px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .col--claude .logo-wrap img {
+      max-height: 80px;
+      max-width: 320px;
+    }
+
+    /* ── Input area ── */
+    .prompt-wrap {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      gap: 0;
+      border: 1.5px solid #d4d4d4;
+      border-radius: 6px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .prompt-wrap:focus-within {
+      border-color: #333;
+    }
+
+    .prompt-input {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      color: #111;
+      border: none;
+      outline: none;
+      background: transparent;
+    }
+
+    .prompt-input::placeholder {
+      color: #bbb;
+    }
+
+    .send-btn {
+      padding: 12px 18px;
+      background: #111;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: #333;
+    }
+
+    /* ── Response area ── */
+    .response {
+      width: 100%;
+      max-width: 460px;
+      margin-top: 28px;
+      display: none;
+    }
+
+    .response.visible {
+      display: block;
+    }
+
+    /* ChatGPT-style text response */
+    .gpt-response {
+      background: #f7f7f8;
+      border-radius: 8px;
+      padding: 20px 22px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #1a1a1a;
+      font-weight: 300;
+    }
+
+    .gpt-response .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 14px;
+      background: #555;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.9s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .gpt-response strong {
+      font-weight: 500;
+    }
+
+    .gpt-response ul {
+      margin: 8px 0 8px 18px;
+    }
+
+    .gpt-response li {
+      margin-bottom: 4px;
+    }
+
+    /* Claude Code video response */
+    .claude-response video {
+      width: 100%;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .claude-tagline {
+      margin-top: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: #888;
+      text-align: center;
+    }
+
+    .claude-tagline span {
+      color: #111;
+      font-weight: 500;
+    }
+
+    /* label tag under logo */
+    .col-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+      .arena {
+        flex-direction: column;
+        min-height: auto;
+      }
+
+      .col {
+        padding: 36px 20px 36px;
+      }
+
+      /* Horizontal divider on mobile */
+      .divider {
+        width: 100%;
+        height: 1px;
+        position: relative;
+      }
+
+      .divider::before {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 0 8px;
+        writing-mode: horizontal-tb;
+      }
+
+      .logo-wrap {
+        margin-bottom: 24px;
+        min-height: 56px;
+      }
+
+      .logo-wrap img {
+        max-height: 44px;
+        max-width: 200px;
+      }
+
+      .col--claude .logo-wrap img {
+        max-height: 60px;
+        max-width: 240px;
+      }
+
+      .col-label {
+        margin-bottom: 20px;
+      }
+
+      .prompt-input {
+        font-size: 16px; /* prevents iOS zoom on focus */
+      }
+
+      .response {
+        margin-top: 20px;
+      }
+
+      .gpt-response {
+        font-size: 13px;
+        padding: 16px 16px;
+      }
+
+      .claude-tagline {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="arena">
+
+  <!-- ── LEFT: ChatGPT ── -->
+  <div class="col col--gpt">
+    <div class="logo-wrap">
+      <img src="images/Chat-GPT-logo.webp" alt="ChatGPT" />
+    </div>
+    <p class="col-label">tells you</p>
+
+    <div class="prompt-wrap">
+      <input
+        class="prompt-input"
+        id="gpt-input"
+        type="text"
+        placeholder="Enter a prompt…"
+        autocomplete="off"
+      />
+      <button class="send-btn" onclick="handleGPT()">→</button>
+    </div>
+
+    <div class="response" id="gpt-response">
+      <div class="gpt-response" id="gpt-text"></div>
+    </div>
+  </div>
+
+  <!-- ── DIVIDER ── -->
+  <div class="divider"></div>
+
+  <!-- ── RIGHT: Claude Code ── -->
+  <div class="col col--claude">
+    <div class="logo-wrap">
+      <img src="images/Logo_ClaudeCode.png" alt="Claude Code" />
+    </div>
+    <p class="col-label">does it</p>
+
+    <div class="prompt-wrap">
+      <input
+        class="prompt-input"
+        id="claude-input"
+        type="text"
+        placeholder="Enter a prompt…"
+        autocomplete="off"
+      />
+      <button class="send-btn" onclick="handleClaude()">→</button>
+    </div>
+
+    <div class="response" id="claude-response">
+      <div class="claude-response">
+        <video id="nasi-video" controls autoplay muted playsinline>
+          <source src="images/Video_Nasi_Goreng_Gerobak_Jakarta.mp4" type="video/mp4" />
+        </video>
+      </div>
+      <p class="claude-tagline">Claude Code doesn't just explain — <span>it does.</span></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const RECIPE_HTML = `
+    <strong>Nasi Goreng Kampung</strong><br><br>
+    Berikut adalah resep nasi goreng kampung yang lezat dan mudah dibuat:<br><br>
+    <strong>Bahan-bahan:</strong>
+    <ul>
+      <li>2 piring nasi putih (dingin/sisa)</li>
+      <li>2 butir telur ayam</li>
+      <li>3 siung bawang putih, cincang</li>
+      <li>4 siung bawang merah, iris tipis</li>
+      <li>2 cabai merah, iris serong</li>
+      <li>2 sdm kecap manis</li>
+      <li>1 sdt terasi bakar</li>
+      <li>Garam dan merica secukupnya</li>
+      <li>Minyak goreng</li>
+    </ul>
+    <strong>Cara memasak:</strong>
+    <ul>
+      <li>Panaskan minyak, tumis bawang merah dan bawang putih hingga harum.</li>
+      <li>Masukkan cabai dan terasi, aduk rata.</li>
+      <li>Masukkan telur, orak-arik hingga setengah matang.</li>
+      <li>Tambahkan nasi, aduk rata dengan bumbu.</li>
+      <li>Tuangkan kecap manis, garam, dan merica. Aduk hingga semua tercampur sempurna.</li>
+      <li>Sajikan panas dengan kerupuk dan acar.<br></li>
+    </ul>
+    Selamat mencoba! 😊
+  `;
+
+  function isNasiGoreng(val) {
+    return val.trim().toLowerCase().includes('nasi goreng');
+  }
+
+  function handleGPT() {
+    const input = document.getElementById('gpt-input');
+    const responseEl = document.getElementById('gpt-response');
+    const textEl = document.getElementById('gpt-text');
+
+    if (!isNasiGoreng(input.value)) return;
+
+    textEl.innerHTML = '';
+    responseEl.classList.add('visible');
+
+    // Simulate typing effect
+    const fullHTML = RECIPE_HTML;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = fullHTML;
+    const plainText = tempDiv.innerText;
+
+    // Just render the HTML with a brief delay for effect
+    setTimeout(() => {
+      textEl.innerHTML = fullHTML;
+    }, 180);
+  }
+
+  function handleClaude() {
+    const input = document.getElementById('claude-input');
+    const responseEl = document.getElementById('claude-response');
+    const video = document.getElementById('nasi-video');
+
+    if (!isNasiGoreng(input.value)) return;
+
+    responseEl.classList.add('visible');
+    video.currentTime = 0;
+    video.play().catch(() => {});
+  }
+
+  // Enter key support
+  document.getElementById('gpt-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleGPT();
+  });
+
+  document.getElementById('claude-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleClaude();
+  });
+</script>
+
+  <script src="nav.js"></script>
+</body>
+</html>

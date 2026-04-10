@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatGPT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #ffffff;
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 64px;
+    }
+
+    /* ── Logo ── */
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .logo-wrap img {
+      max-height: 56px;
+      max-width: 260px;
+      object-fit: contain;
+    }
+
+    .col-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    /* ── Input area ── */
+    .prompt-wrap {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      border: 1.5px solid #d4d4d4;
+      border-radius: 6px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .prompt-wrap:focus-within {
+      border-color: #333;
+    }
+
+    .prompt-input {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      color: #111;
+      border: none;
+      outline: none;
+      background: transparent;
+    }
+
+    .prompt-input::placeholder {
+      color: #bbb;
+    }
+
+    .send-btn {
+      padding: 12px 18px;
+      background: #111;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: #333;
+    }
+
+    /* ── Response area ── */
+    .response {
+      width: 100%;
+      max-width: 560px;
+      margin-top: 28px;
+      display: none;
+    }
+
+    .response.visible {
+      display: block;
+    }
+
+    .gpt-response {
+      background: #f7f7f8;
+      border-radius: 8px;
+      padding: 24px 26px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #1a1a1a;
+      font-weight: 300;
+    }
+
+    .gpt-response strong {
+      font-weight: 500;
+    }
+
+    .gpt-response ol {
+      margin: 10px 0 10px 20px;
+    }
+
+    .gpt-response ul {
+      margin: 6px 0 10px 20px;
+    }
+
+    .gpt-response li {
+      margin-bottom: 6px;
+    }
+
+    .gpt-response pre {
+      background: #ececec;
+      border-radius: 5px;
+      padding: 14px 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 10px 0;
+      white-space: pre;
+    }
+
+    .gpt-response .step-header {
+      font-weight: 500;
+      margin-top: 16px;
+      display: block;
+    }
+
+    /* Typing cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 14px;
+      background: #555;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.9s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 640px) {
+      body {
+        padding: 36px 16px 48px;
+      }
+
+      .logo-wrap img {
+        max-height: 44px;
+        max-width: 200px;
+      }
+
+      .col-label {
+        margin-bottom: 24px;
+      }
+
+      .prompt-input {
+        font-size: 16px;
+      }
+
+      .gpt-response {
+        font-size: 13px;
+        padding: 18px 16px;
+      }
+
+      .gpt-response pre {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-wrap">
+    <img src="images/Chat-GPT-logo.webp" alt="ChatGPT" />
+  </div>
+  <p class="col-label">tells you</p>
+
+  <div class="prompt-wrap">
+    <input
+      class="prompt-input"
+      id="gpt-input"
+      type="text"
+      placeholder="Enter a prompt…"
+      autocomplete="off"
+    />
+    <button class="send-btn" id="send-btn">→</button>
+  </div>
+
+  <div class="response" id="gpt-response">
+    <div class="gpt-response" id="gpt-text"></div>
+  </div>
+
+<script>
+  const STEPS = [
+    { type: 'text', content: '<strong>Tic Tac Toe — Step by Step</strong><br><br>Tentu! Berikut cara membuat game Tic Tac Toe sederhana menggunakan HTML, CSS, dan JavaScript.' },
+    { type: 'text', content: '<span class="step-header">Langkah 1 — Buat struktur HTML</span>Buat file <code>index.html</code> dengan papan 3×3 dan tombol reset:' },
+    { type: 'code', content: `&lt;div id="board"&gt;
+  &lt;div class="cell" data-i="0"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="1"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="2"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="3"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="4"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="5"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="6"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="7"&gt;&lt;/div&gt;
+  &lt;div class="cell" data-i="8"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;p id="status"&gt;&lt;/p&gt;
+&lt;button onclick="reset()"&gt;Reset&lt;/button&gt;` },
+    { type: 'text', content: '<span class="step-header">Langkah 2 — Styling CSS</span>Buat grid 3×3 dengan CSS:' },
+    { type: 'code', content: `#board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 6px;
+}
+.cell {
+  width: 100px; height: 100px;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+}` },
+    { type: 'text', content: '<span class="step-header">Langkah 3 — Logika JavaScript</span>Tambahkan logika giliran pemain dan deteksi menang:' },
+    { type: 'code', content: `let board = Array(9).fill('');
+let current = 'X';
+const wins = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+document.querySelectorAll('.cell').forEach(cell =&gt; {
+  cell.addEventListener('click', () =&gt; {
+    const i = +cell.dataset.i;
+    if (board[i] || checkWin()) return;
+    board[i] = current;
+    cell.textContent = current;
+    if (checkWin()) {
+      document.getElementById('status')
+        .textContent = current + ' menang!';
+    } else {
+      current = current === 'X' ? 'O' : 'X';
+    }
+  });
+});
+
+function checkWin() {
+  return wins.some(([a,b,c]) =&gt;
+    board[a] &amp;&amp; board[a]===board[b] &amp;&amp; board[a]===board[c]
+  );
+}
+
+function reset() {
+  board.fill('');
+  current = 'X';
+  document.querySelectorAll('.cell')
+    .forEach(c =&gt; c.textContent = '');
+  document.getElementById('status').textContent = '';
+}` },
+    { type: 'text', content: '<span class="step-header">Langkah 4 — Jalankan</span>Buka <code>index.html</code> di browser. Pemain bergantian klik sel — siapa duluan membentuk 3 baris/kolom/diagonal menang!<br><br>Selamat mencoba! 🎮' },
+  ];
+
+  function isTicTacToe(val) {
+    const v = val.trim().toLowerCase();
+    return v.includes('tic tac toe') || v.includes('tictactoe');
+  }
+
+  let running = false;
+
+  async function handleGPT() {
+    const input = document.getElementById('gpt-input');
+    if (!isTicTacToe(input.value) || running) return;
+
+    running = true;
+    const responseEl = document.getElementById('gpt-response');
+    const textEl = document.getElementById('gpt-text');
+
+    textEl.innerHTML = '';
+    responseEl.classList.add('visible');
+
+    for (const step of STEPS) {
+      await renderStep(textEl, step);
+      await delay(320);
+    }
+
+    running = false;
+  }
+
+  function renderStep(container, step) {
+    return new Promise(resolve => {
+      if (step.type === 'code') {
+        const pre = document.createElement('pre');
+        container.appendChild(pre);
+        typeInto(pre, step.content, 6, resolve);
+      } else {
+        const span = document.createElement('span');
+        container.appendChild(span);
+        // For HTML content, inject directly with slight delay
+        setTimeout(() => {
+          span.innerHTML = step.content;
+          resolve();
+        }, 120);
+      }
+    });
+  }
+
+  function typeInto(el, text, speed, done) {
+    // Decode HTML entities for display
+    const decoded = text
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
+
+    let i = 0;
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    el.appendChild(cursor);
+
+    const interval = setInterval(() => {
+      if (i < decoded.length) {
+        cursor.before(decoded[i]);
+        i++;
+        // Auto-scroll
+        el.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      } else {
+        clearInterval(interval);
+        cursor.remove();
+        done();
+      }
+    }, speed);
+  }
+
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  document.getElementById('send-btn').addEventListener('click', handleGPT);
+  document.getElementById('gpt-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleGPT();
+  });
+</script>
+
+  <script src="nav.js"></script>
+</body>
+</html>

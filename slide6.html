@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GameIQ Pro 3D — Enterprise Gaming Analytics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Red Hat Display', sans-serif; background: #f2f0f0; color: #000; overflow-x: hidden; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      position: fixed; inset: 0; background: #000;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9000; transition: opacity 0.5s;
+    }
+    #login-screen.hide { opacity: 0; pointer-events: none; }
+    .login-box {
+      background: #fff; border-radius: 20px; padding: 48px 40px;
+      width: 380px; max-width: 90vw; text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .login-box img { width: 56px; margin-bottom: 12px; }
+    .login-box h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .login-box p  { font-size: 13px; color: #666; margin-bottom: 28px; }
+    .login-field {
+      width: 100%; border: 1.5px solid #ddd; border-radius: 8px;
+      padding: 12px 14px; font-family: inherit; font-size: 14px;
+      margin-bottom: 12px; outline: none; transition: border-color 0.2s;
+    }
+    .login-field:focus { border-color: #fede3e; }
+    .login-btn {
+      width: 100%; background: #fede3e; border: none; border-radius: 8px;
+      padding: 13px; font-family: inherit; font-weight: 700; font-size: 15px;
+      cursor: pointer; transition: background 0.2s; margin-top: 4px;
+    }
+    .login-btn:hover { background: #f5d200; }
+    .login-hint { font-size: 11px; color: #aaa; margin-top: 16px; }
+    .login-error { font-size: 12px; color: #ef3d58; margin-top: 8px; min-height: 18px; }
+    .sso-row { display: flex; gap: 8px; margin-top: 16px; }
+    .sso-btn {
+      flex: 1; padding: 9px; border: 1.5px solid #ddd; border-radius: 8px;
+      background: #fff; font-family: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; color: #555;
+    }
+    .sso-btn:hover { background: #f9f9f9; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    #app.visible { display: flex; }
+
+    /* Top nav */
+    .topnav {
+      background: #000; color: #fff;
+      display: flex; align-items: center;
+      padding: 0 28px; height: 56px; gap: 24px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topnav-logo { display: flex; align-items: center; gap: 10px; }
+    .topnav-logo img { width: 32px; }
+    .topnav-logo span { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
+    .topnav-logo em { font-style: normal; color: #fede3e; }
+    .topnav-links { display: flex; gap: 20px; flex: 1; padding-left: 16px; }
+    .topnav-links a { font-size: 13px; color: #aaa; text-decoration: none; cursor: pointer; transition: color 0.15s; }
+    .topnav-links a:hover, .topnav-links a.active { color: #fff; }
+    .topnav-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .upgrade-btn {
+      background: #fede3e; color: #000; border: none; border-radius: 6px;
+      padding: 7px 16px; font-family: inherit; font-weight: 700; font-size: 12px; cursor: pointer;
+    }
+    .upgrade-btn:hover { background: #f5d200; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #fede3e; color: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    .user-name { font-size: 13px; color: #ccc; }
+
+    /* Analytics bar */
+    .analytics-bar {
+      background: #fff; border-bottom: 1px solid #e8e8e8;
+      padding: 16px 28px; display: flex; gap: 0; overflow-x: auto;
+    }
+    .metric { flex: 1; min-width: 110px; padding: 0 24px 0 0; border-right: 1px solid #eee; margin-right: 24px; }
+    .metric:last-child { border-right: none; margin-right: 0; }
+    .metric-label { font-size: 11px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+    .metric-value { font-size: 24px; font-weight: 700; line-height: 1; }
+    .metric-delta { font-size: 11px; margin-top: 3px; }
+    .metric-delta.up { color: #17AC62; }
+    .metric-delta.neu { color: #888; }
+
+    /* Page layout */
+    .page-content { display: flex; flex: 1; }
+
+    /* Left nav sidebar */
+    .sidebar {
+      width: 200px; flex-shrink: 0;
+      background: #fff; border-right: 1px solid #e8e8e8; padding: 20px 0;
+    }
+    .sidebar-section { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 20px 4px; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 20px; font-size: 13px; color: #555;
+      cursor: pointer; transition: background 0.12s;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-item:hover { background: #f9f9f9; color: #000; }
+    .sidebar-item.active { background: #fffbe6; color: #000; font-weight: 700; border-left-color: #fede3e; }
+
+    /* Main content */
+    .main-area { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+    .page-title-row {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    .page-title { font-size: 20px; font-weight: 700; }
+    .page-subtitle { font-size: 13px; color: #888; margin-top: 2px; }
+    .header-actions { display: flex; gap: 10px; }
+    .action-btn {
+      padding: 8px 18px; border-radius: 8px; border: 1.5px solid #ddd;
+      background: #fff; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .action-btn:hover { background: #f5f5f5; }
+    .action-btn.primary { background: #fede3e; border-color: #fede3e; }
+    .action-btn.primary:hover { background: #f5d200; }
+
+    /* Two-column arena layout */
+    .arena-layout { display: flex; gap: 18px; align-items: flex-start; }
+
+    /* 3D Game card */
+    .game-card {
+      background: #fff; border-radius: 16px; border: 1px solid #e8e8e8;
+      padding: 20px; flex: 1; display: flex; flex-direction: column; align-items: center;
+      min-width: 0;
+    }
+    .card-header {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #f0f0f0;
+    }
+    .card-title { font-size: 15px; font-weight: 700; }
+    .card-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #f0f0f0; color: #555; }
+    .card-badge.live { background: #d4f5e2; color: #17AC62; }
+
+    .game-title { font-weight: 700; font-size: 20px; letter-spacing: -0.4px; margin-bottom: 2px; }
+    .subtitle { font-size: 12px; color: #888; margin-bottom: 12px; }
+
+    /* Difficulty */
+    .difficulty { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .difficulty label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #555; }
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-label { font-size: 11px; font-weight: 700; color: #999; width: 44px; text-align: center; }
+    .slider-label.active-label { color: #000; }
+    input[type=range] { -webkit-appearance: none; width: 120px; height: 4px; border-radius: 2px; background: #ddd; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fede3e; border: 2px solid #000; cursor: pointer; }
+    #difficulty-display { font-size: 13px; font-weight: 700; background: #fede3e; padding: 2px 12px; border-radius: 20px; min-width: 64px; text-align: center; }
+
+    /* Status */
+    #status { font-size: 15px; font-weight: 400; color: #333; margin-bottom: 10px; min-height: 22px; text-align: center; }
+    #status.winner { font-weight: 700; font-size: 17px; color: #000; background: #fede3e; padding: 7px 18px; border-radius: 8px; animation: statusPop 0.4s ease; }
+    #status.loser  { font-weight: 700; font-size: 15px; color: #fff; background: #000; padding: 7px 18px; border-radius: 8px; animation: statusPop 0.4s ease; }
+    @keyframes statusPop { 0% { transform: scale(0.8); opacity:0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity:1; } }
+
+    #trash-talk { font-size: 12px; font-style: italic; color: #666; margin-bottom: 10px; min-height: 18px; text-align: center; max-width: 320px; opacity: 0; transition: opacity 0.4s; }
+    #trash-talk.show { opacity: 1; }
+
+    /* Three.js canvas container */
+    #three-container {
+      width: 100%; max-width: 420px;
+      aspect-ratio: 1;
+      border-radius: 12px; overflow: hidden;
+      background: #111;
+      cursor: pointer;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    #three-canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    /* Click overlay hint */
+    #click-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.6); color: #fff;
+      font-size: 11px; padding: 4px 12px; border-radius: 20px;
+      pointer-events: none; transition: opacity 0.5s;
+    }
+
+    .game-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    #reset-btn {
+      font-family: 'Red Hat Display', sans-serif; font-weight: 700; font-size: 14px;
+      padding: 10px 28px; cursor: pointer; border: none; border-radius: 8px;
+      background: #fede3e; color: #000; transition: background 0.2s;
+    }
+    #reset-btn:hover { background: #f5d200; }
+    #telegram-btn {
+      font-family: 'Red Hat Display', sans-serif; font-weight: 700; font-size: 14px;
+      padding: 10px 22px; cursor: pointer; border: 1.5px solid #229ed9;
+      border-radius: 8px; background: #fff; color: #229ed9;
+      display: flex; align-items: center; gap: 7px;
+    }
+    #telegram-btn:hover { background: #e8f4fb; }
+    #telegram-btn svg { width: 16px; height: 16px; fill: #229ed9; }
+
+    /* ── LEADERBOARD SIDEBAR ── */
+    .leaderboard-panel {
+      width: 260px; flex-shrink: 0;
+      background: #fff; border-radius: 16px; border: 1px solid #e8e8e8;
+      padding: 20px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .lb-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .lb-title span { font-size: 18px; }
+    .lb-subtitle { font-size: 11px; color: #888; margin-top: -10px; }
+
+    .lb-tabs { display: flex; gap: 0; border: 1.5px solid #eee; border-radius: 8px; overflow: hidden; }
+    .lb-tab {
+      flex: 1; padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer;
+      background: #fff; border: none; font-family: inherit; color: #888;
+      transition: background 0.15s;
+    }
+    .lb-tab.active { background: #fede3e; color: #000; }
+
+    .lb-list { display: flex; flex-direction: column; gap: 8px; }
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: 10px; background: #f9f9f9;
+      transition: background 0.15s;
+    }
+    .lb-row:hover { background: #fffbe6; }
+    .lb-row.me { background: #fffbe6; border: 1.5px solid #fede3e; }
+    .lb-rank { font-size: 13px; font-weight: 700; width: 20px; text-align: center; color: #888; }
+    .lb-rank.gold   { color: #f5a623; }
+    .lb-rank.silver { color: #9b9b9b; }
+    .lb-rank.bronze { color: #c07a3b; }
+    .lb-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #000; color: #fede3e;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-stat { font-size: 11px; color: #888; }
+    .lb-score { font-size: 14px; font-weight: 700; }
+
+    .lb-you-badge {
+      font-size: 10px; background: #fede3e; color: #000; font-weight: 700;
+      padding: 1px 6px; border-radius: 8px;
+    }
+
+    .lb-footer { font-size: 11px; color: #aaa; text-align: center; padding-top: 4px; border-top: 1px solid #f0f0f0; }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 8000; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff; border-radius: 20px; padding: 40px 36px;
+      width: 680px; max-width: 94vw; max-height: 90vh; overflow-y: auto;
+      transform: translateY(20px); transition: transform 0.25s; position: relative;
+    }
+    .modal-overlay.show .modal { transform: translateY(0); }
+    .modal-close { position: absolute; top: 16px; right: 18px; background: none; border: none; font-size: 22px; cursor: pointer; color: #999; }
+    .modal-close:hover { color: #000; }
+    .modal h2 { font-size: 24px; font-weight: 700; margin-bottom: 6px; text-align: center; }
+    .modal-sub { font-size: 14px; color: #888; text-align: center; margin-bottom: 32px; }
+    .modal-sub span { background: #fede3e; padding: 1px 8px; border-radius: 4px; font-weight: 700; color: #000; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .plan { border: 1.5px solid #e8e8e8; border-radius: 14px; padding: 24px 20px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+    .plan.popular { border-color: #fede3e; box-shadow: 0 4px 20px rgba(254,222,62,0.3); }
+    .popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fede3e; color: #000; font-size: 11px; font-weight: 700; padding: 2px 12px; border-radius: 20px; white-space: nowrap; }
+    .plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #888; }
+    .plan-price { font-size: 32px; font-weight: 700; line-height: 1; }
+    .plan-price span { font-size: 14px; font-weight: 400; color: #888; }
+    .plan-desc { font-size: 12px; color: #888; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+    .plan-feature { font-size: 12px; color: #444; display: flex; gap: 8px; align-items: flex-start; }
+    .plan-feature::before { content: "✓"; font-weight: 700; color: #17AC62; flex-shrink: 0; }
+    .plan-feature.no::before { content: "✕"; color: #ccc; }
+    .plan-feature.no { color: #bbb; }
+    .plan-btn { margin-top: auto; padding: 10px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid #ddd; background: #fff; transition: background 0.15s; }
+    .plan.popular .plan-btn { background: #fede3e; border-color: #fede3e; }
+    .plan-btn:hover { background: #f5f5f5; }
+    .plan.popular .plan-btn:hover { background: #f5d200; }
+
+    #tg-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 8500; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #tg-modal-overlay.show { opacity: 1; pointer-events: all; }
+    .tg-modal { background: #fff; border-radius: 16px; padding: 32px 28px; width: 360px; max-width: 90vw; text-align: center; transform: translateY(16px); transition: transform 0.2s; }
+    #tg-modal-overlay.show .tg-modal { transform: translateY(0); }
+    .tg-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .tg-modal p  { font-size: 12px; color: #888; margin-bottom: 18px; line-height: 1.6; }
+    .tg-modal p a { color: #229ed9; }
+    .tg-modal input { width: 100%; border: 1.5px solid #ddd; border-radius: 8px; padding: 11px 14px; font-family: inherit; font-size: 14px; margin-bottom: 12px; outline: none; }
+    .tg-modal input:focus { border-color: #229ed9; }
+    .tg-send-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #229ed9; color: #fff; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .tg-send-btn:hover { background: #1a8abf; }
+    #tg-feedback { font-size: 12px; margin-top: 8px; min-height: 18px; }
+    #tg-feedback.ok  { color: #17AC62; }
+    #tg-feedback.err { color: #ef3d58; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #000; color: #fff; padding: 12px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 700; opacity: 0; transform: translateY(12px);
+      transition: opacity 0.3s, transform 0.3s; z-index: 10000; pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Confetti */
+    #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+      .arena-layout { flex-direction: column; }
+      .leaderboard-panel { width: 100%; }
+    }
+    @media (max-width: 640px) {
+      .topnav-links, .user-name { display: none; }
+      .topnav { padding: 0 14px; }
+      .analytics-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
+      .metric { border-right: none; margin-right: 0; padding: 0; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
+      .metric:nth-last-child(-n+2) { border-bottom: none; }
+      .metric-value { font-size: 18px; }
+      .sidebar { display: none; }
+      .main-area { padding: 14px 10px; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      #toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <img src="Revou Logo.png" alt="RevoU">
+    <h2>GameIQ <em style="color:#fede3e;font-style:normal;">Pro</em></h2>
+    <p>Enterprise Gaming Analytics Platform</p>
+    <input class="login-field" id="login-email" type="email" placeholder="Work email" value="user@binus.ac.id">
+    <input class="login-field" id="login-pass" type="password" placeholder="Password">
+    <div id="login-error" class="login-error"></div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="sso-row">
+      <button class="sso-btn" onclick="doLogin()">🔵 Google SSO</button>
+      <button class="sso-btn" onclick="doLogin()">🟣 Microsoft SSO</button>
+    </div>
+    <p class="login-hint">Any password works — this is a demo ✨</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <nav class="topnav">
+    <div class="topnav-logo">
+      <img src="Revou Logo.png" alt="RevoU">
+      <span>GameIQ <em>Pro</em></span>
+    </div>
+    <div class="topnav-links">
+      <a class="active">Dashboard</a>
+      <a onclick="showToast('Analytics module requires Enterprise plan')">Analytics</a>
+      <a onclick="showToast('Leaderboard is a Pro feature')">Leaderboard</a>
+      <a onclick="showToast('Integrations coming Q3 2026')">Integrations</a>
+    </div>
+    <div class="topnav-right">
+      <button class="upgrade-btn" onclick="openPricing()">⚡ Upgrade to Pro</button>
+      <span class="user-name" id="nav-username">user</span>
+      <div class="avatar" id="nav-avatar">U</div>
+    </div>
+  </nav>
+
+  <div class="analytics-bar">
+    <div class="metric">
+      <div class="metric-label">Total Sessions</div>
+      <div class="metric-value" id="m-sessions">0</div>
+      <div class="metric-delta neu" id="m-sessions-d">+0% vs last week</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Win Rate</div>
+      <div class="metric-value" id="m-winrate">—</div>
+      <div class="metric-delta neu">vs AI engine</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Current Streak</div>
+      <div class="metric-value" id="m-streak">0</div>
+      <div class="metric-delta neu" id="m-streak-d">games</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Avg. Moves/Game</div>
+      <div class="metric-value" id="m-avgmoves">—</div>
+      <div class="metric-delta neu">to outcome</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">AI Difficulty</div>
+      <div class="metric-value" id="m-difficulty">Hard</div>
+      <div class="metric-delta neu">minimax engine</div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    <aside class="sidebar">
+      <div class="sidebar-section">Workspace</div>
+      <div class="sidebar-item active"><span>🎮</span> Game Arena 3D</div>
+      <div class="sidebar-item" onclick="showToast('Requires Pro plan')"><span>📊</span> Reports</div>
+      <div class="sidebar-item" onclick="showToast('Requires Pro plan')"><span>🏆</span> Achievements</div>
+      <div class="sidebar-item" onclick="showToast('Requires Pro plan')"><span>🤖</span> AI Models</div>
+      <div class="sidebar-section" style="margin-top:12px">Settings</div>
+      <div class="sidebar-item" onclick="openTgModal()"><span>✈️</span> Telegram</div>
+      <div class="sidebar-item" onclick="openPricing()"><span>💳</span> Billing</div>
+      <div class="sidebar-item" onclick="doLogout()"><span>🚪</span> Logout</div>
+    </aside>
+
+    <main class="main-area">
+      <div class="page-title-row">
+        <div>
+          <div class="page-title">Game Arena 3D</div>
+          <div class="page-subtitle">Three.js WebGL · Minimax AI · Alpha-Beta Pruning</div>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn" onclick="openTgModal()">✈️ Share Stats</button>
+          <button class="action-btn primary" onclick="openPricing()">⚡ Upgrade</button>
+        </div>
+      </div>
+
+      <div class="arena-layout">
+
+        <!-- 3D Game Card -->
+        <div class="game-card">
+          <div class="card-header">
+            <span class="card-title">Active Session</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="card-badge live">● LIVE</span>
+              <span class="card-badge" id="session-id-badge">Session #1</span>
+            </div>
+          </div>
+
+          <div class="game-title">Tic-Tac-Toe vs AI</div>
+          <p class="subtitle">You are <strong>BINUS</strong> &nbsp;·&nbsp; AI is <strong>ITB</strong> &nbsp;·&nbsp; Click a cell to play</p>
+
+          <div class="difficulty">
+            <label>Difficulty</label>
+            <div class="slider-row">
+              <span class="slider-label" id="lbl-easy">Easy</span>
+              <input type="range" id="difficulty-slider" min="0" max="2" step="1" value="2" oninput="onDifficultyChange()">
+              <span class="slider-label" id="lbl-hard">Hard</span>
+            </div>
+            <div id="difficulty-display">Hard</div>
+          </div>
+
+          <div id="status">Your turn</div>
+          <div id="trash-talk"></div>
+
+          <!-- Three.js scene -->
+          <div id="three-container">
+            <canvas id="three-canvas"></canvas>
+            <div id="click-hint">Click a cell to place your piece</div>
+          </div>
+
+          <div class="game-actions">
+            <button id="reset-btn" onclick="resetGame()">New Game</button>
+            <button id="telegram-btn" onclick="openTgModal()">
+              <svg viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg>
+              Send Stats
+            </button>
+          </div>
+        </div>
+
+        <!-- Leaderboard Panel -->
+        <div class="leaderboard-panel">
+          <div class="lb-title"><span>🏆</span> Leaderboard</div>
+          <div class="lb-subtitle">Global rankings — updated live</div>
+
+          <div class="lb-tabs">
+            <button class="lb-tab active" onclick="setLbTab('weekly',this)">Weekly</button>
+            <button class="lb-tab" onclick="setLbTab('monthly',this)">Monthly</button>
+            <button class="lb-tab" onclick="setLbTab('alltime',this)">All Time</button>
+          </div>
+
+          <div class="lb-list" id="lb-list"></div>
+
+          <div class="lb-footer">
+            🔒 Full leaderboard requires Pro plan
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- PRICING MODAL -->
+<div class="modal-overlay" id="pricing-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePricing()">✕</button>
+    <h2>Choose Your Plan</h2>
+    <p class="modal-sub">Unlock the full power of GameIQ Pro &nbsp;<span>Save 40% annually</span></p>
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">Free <span>/ mo</span></div>
+        <div class="plan-desc">Perfect for casual players</div>
+        <div class="plan-feature">3D WebGL game board</div>
+        <div class="plan-feature">Basic game stats</div>
+        <div class="plan-feature no">No Telegram integration</div>
+        <div class="plan-feature no">No full leaderboard</div>
+        <div class="plan-feature no">No custom AI models</div>
+        <button class="plan-btn" onclick="showToast('Already on free plan!')">Current Plan</button>
+      </div>
+      <div class="plan popular">
+        <div class="popular-badge">⚡ Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$29 <span>/ mo</span></div>
+        <div class="plan-desc">For serious competitors</div>
+        <div class="plan-feature">All 3 AI difficulty levels</div>
+        <div class="plan-feature">Advanced analytics</div>
+        <div class="plan-feature">Telegram integration</div>
+        <div class="plan-feature">Full global leaderboard</div>
+        <div class="plan-feature no">No custom AI models</div>
+        <button class="plan-btn" onclick="showToast('Payment flow coming soon!'); closePricing()">Upgrade to Pro</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">$99 <span>/ mo</span></div>
+        <div class="plan-desc">For teams & universities</div>
+        <div class="plan-feature">Everything in Pro</div>
+        <div class="plan-feature">Custom AI models</div>
+        <div class="plan-feature">SSO & SAML support</div>
+        <div class="plan-feature">Priority support</div>
+        <div class="plan-feature">SLA guarantee</div>
+        <button class="plan-btn" onclick="showToast('Sales team will contact you!'); closePricing()">Contact Sales</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELEGRAM MODAL -->
+<div id="tg-modal-overlay">
+  <div class="tg-modal">
+    <h3>✈️ Send Stats to Telegram</h3>
+    <p>Enter your Telegram Chat ID to receive your game stats.<br>
+       Get it by messaging <a href="#" onclick="return false">@userinfobot</a> on Telegram.</p>
+    <input type="text" id="tg-chat-id" placeholder="e.g. 123456789">
+    <div id="tg-feedback"></div>
+    <button class="tg-send-btn" onclick="sendTelegram()">Send Stats</button>
+    <br><br>
+    <button onclick="closeTgModal()" style="background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════
+let currentUser = '';
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { document.getElementById('login-error').textContent = 'Please enter your email.'; return; }
+  currentUser = email.split('@')[0];
+  document.getElementById('nav-username').textContent = currentUser;
+  document.getElementById('nav-avatar').textContent = currentUser[0].toUpperCase();
+  const ls = document.getElementById('login-screen');
+  ls.classList.add('hide');
+  setTimeout(() => { ls.style.display = 'none'; initThree(); }, 500);
+  document.getElementById('app').classList.add('visible');
+  const saved = localStorage.getItem('tg_chat_id');
+  if (saved) document.getElementById('tg-chat-id').value = saved;
+  renderLeaderboard('weekly');
+}
+
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-screen').classList.remove('hide');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-pass').value = '';
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+// ══════════════════════════════════════
+// AUDIO
+// ══════════════════════════════════════
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, type, dur, g=0.3) {
+  const o = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  o.connect(gain); gain.connect(audioCtx.destination);
+  o.type = type; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(g, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+  o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime+dur);
+}
+function soundPlace(p) { const f=p===HUMAN?520:380; playTone(f,'sine',0.18,0.25); setTimeout(()=>playTone(f*1.25,'sine',0.12,0.15),80); }
+function soundWin()    { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.3,0.35),i*100)); }
+function soundLose()   { [400,350,280,220].forEach((f,i)=>setTimeout(()=>playTone(f,'sawtooth',0.35,0.28),i*120)); }
+function soundDraw()   { playTone(300,'sawtooth',0.4,0.2); setTimeout(()=>playTone(250,'sawtooth',0.5,0.2),150); }
+
+// ══════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════
+const cfCanvas = document.getElementById('confetti-canvas');
+const cf = cfCanvas.getContext('2d');
+let cfParticles = [], cfFrame = null;
+const cfColors = ['#fede3e','#000','#ef3d58','#fcb031','#1d6fbd','#f65616'];
+function spawnConfetti() {
+  cfCanvas.width=window.innerWidth; cfCanvas.height=window.innerHeight; cfParticles=[];
+  for(let i=0;i<160;i++) cfParticles.push({ x:Math.random()*cfCanvas.width, y:-10-Math.random()*200, w:8+Math.random()*8, h:6+Math.random()*6, color:cfColors[Math.floor(Math.random()*cfColors.length)], angle:Math.random()*Math.PI*2, spin:(Math.random()-0.5)*0.2, vx:(Math.random()-0.5)*4, vy:2+Math.random()*4, opacity:1 });
+  if(cfFrame) cancelAnimationFrame(cfFrame); cfAnimate();
+}
+function cfAnimate() {
+  cf.clearRect(0,0,cfCanvas.width,cfCanvas.height); let alive=false;
+  for(const p of cfParticles){ p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.angle+=p.spin; if(p.y<cfCanvas.height+20)alive=true; if(p.y>cfCanvas.height-100)p.opacity-=0.02; cf.save();cf.globalAlpha=Math.max(0,p.opacity);cf.translate(p.x,p.y);cf.rotate(p.angle);cf.fillStyle=p.color;cf.fillRect(-p.w/2,-p.h/2,p.w,p.h);cf.restore(); }
+  if(alive) cfFrame=requestAnimationFrame(cfAnimate); else cf.clearRect(0,0,cfCanvas.width,cfCanvas.height);
+}
+
+// ══════════════════════════════════════
+// GAME CONSTANTS
+// ══════════════════════════════════════
+const HUMAN='BINUS', AI='ITB';
+const WIN_COMBOS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const TRASH_TALK=["Did you just... try that? Bold move. Wrong move.","I've seen better strategy from a random number generator.","ITB's algorithm sends its regards. You're welcome.","Was that your plan? Impressive in its own terrible way.","Maybe stick to PowerPoint. Just saying.","That's okay, not everyone can beat me. Most can't.","GG. Well, the first G was generous.","I calculated every possible game. You lost all of them.","Error 404: Winning strategy not found.","Minimax says hi. You lose."];
+const difficultyNames=['Easy','Medium','Hard'];
+
+let board=Array(9).fill(''), over=false, aiThinking=false, difficulty=2, movesThisGame=0;
+let stats={sessions:0,wins:0,losses:0,draws:0,streak:0,totalMoves:0,gamesWithMoves:0};
+
+function updateMetrics() {
+  document.getElementById('m-sessions').textContent=stats.sessions;
+  const t=stats.wins+stats.losses+stats.draws;
+  document.getElementById('m-winrate').textContent=t?Math.round(stats.wins/t*100)+'%':'—';
+  document.getElementById('m-streak').textContent=stats.streak;
+  document.getElementById('m-streak-d').textContent=stats.streak>0?'win streak 🔥':stats.streak<0?'loss streak 😬':'games';
+  document.getElementById('m-avgmoves').textContent=stats.gamesWithMoves?(stats.totalMoves/stats.gamesWithMoves).toFixed(1):'—';
+  document.getElementById('m-difficulty').textContent=difficultyNames[difficulty];
+  document.getElementById('m-sessions-d').textContent=t?`${stats.wins}W · ${stats.losses}L · ${stats.draws}D`:'+0% vs last week';
+}
+
+function onDifficultyChange() {
+  difficulty=parseInt(document.getElementById('difficulty-slider').value);
+  document.getElementById('difficulty-display').textContent=difficultyNames[difficulty];
+  ['lbl-easy','lbl-hard'].forEach(id=>document.getElementById(id).classList.remove('active-label'));
+  if(difficulty===0) document.getElementById('lbl-easy').classList.add('active-label');
+  if(difficulty===2) document.getElementById('lbl-hard').classList.add('active-label');
+  updateMetrics(); resetGame();
+}
+
+// ══════════════════════════════════════
+// MINIMAX
+// ══════════════════════════════════════
+function boardWinner(b) {
+  for(const[a,x,y]of WIN_COMBOS) if(b[a]&&b[a]===b[x]&&b[x]===b[y]) return b[a];
+  return b.every(v=>v)?'draw':null;
+}
+function minimax(b,isMax,d,alpha,beta) {
+  const r=boardWinner(b);
+  if(r===AI) return 10-d; if(r===HUMAN) return d-10; if(r==='draw') return 0;
+  if(isMax){ let best=-Infinity; for(let i=0;i<9;i++) if(!b[i]){b[i]=AI;best=Math.max(best,minimax(b,false,d+1,alpha,beta));b[i]='';alpha=Math.max(alpha,best);if(beta<=alpha)break;} return best; }
+  else { let best=Infinity; for(let i=0;i<9;i++) if(!b[i]){b[i]=HUMAN;best=Math.min(best,minimax(b,true,d+1,alpha,beta));b[i]='';beta=Math.min(beta,best);if(beta<=alpha)break;} return best; }
+}
+function getBestMove(b) { let bv=-Infinity,bm=-1; for(let i=0;i<9;i++) if(!b[i]){b[i]=AI;const v=minimax(b,false,0,-Infinity,Infinity);b[i]='';if(v>bv){bv=v;bm=i;}} return bm; }
+function getAIMove() {
+  const empty=board.map((v,i)=>v?null:i).filter(i=>i!==null);
+  if(difficulty===0) return empty[Math.floor(Math.random()*empty.length)];
+  if(difficulty===1) return Math.random()<0.5?getBestMove([...board]):empty[Math.floor(Math.random()*empty.length)];
+  return getBestMove([...board]);
+}
+
+// ══════════════════════════════════════
+// THREE.JS 3D BOARD
+// ══════════════════════════════════════
+let renderer, scene, camera, raycaster, mouse;
+let cellMeshes = []; // the 9 clickable tile meshes
+let pieceMeshes = []; // placed piece meshes
+let gridLines = [];
+let threeInited = false;
+let cameraPanDone = false;
+let animId;
+
+// Physics for dropping pieces
+let droppingPieces = []; // {mesh, vy, targetY}
+
+const MAT_CELL_IDLE    = null; // set after init
+const CELL_SIZE = 1.8;
+const GAP = 0.15;
+const STEP = CELL_SIZE + GAP;
+
+// Colors
+const COLOR_BOARD    = 0x1a1a1a;
+const COLOR_CELL     = 0xffffff;
+const COLOR_HOVER    = 0xfef5bc;
+const COLOR_BINUS    = 0xfede3e; // yellow sphere
+const COLOR_ITB      = 0x1d6fbd; // blue cylinder
+const COLOR_WIN_CELL = 0xfede3e;
+const COLOR_GRID     = 0xfede3e;
+
+let hoveredCell = -1;
+let cellMaterials = [];
+
+function initThree() {
+  if (threeInited) return;
+  threeInited = true;
+
+  const container = document.getElementById('three-container');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), antialias: true, alpha: false });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111111);
+  scene.fog = new THREE.Fog(0x111111, 18, 35);
+
+  // Camera — starts from cinematic angle, pans down
+  camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
+  camera.position.set(0, 14, 14); // cinematic start: high & far
+  camera.lookAt(0, 0, 0);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(5, 12, 8);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
+  scene.add(dirLight);
+
+  const fillLight = new THREE.PointLight(0xfede3e, 0.4, 20);
+  fillLight.position.set(-4, 4, -4);
+  scene.add(fillLight);
+
+  // Floor (subtle reflection plane)
+  const floorGeo = new THREE.PlaneGeometry(30, 30);
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.y = -1.2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Grid lines
+  buildGridLines();
+
+  // Cell tiles
+  buildCells();
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  // Events
+  const cvs = renderer.domElement;
+  cvs.addEventListener('mousemove', onMouseMove);
+  cvs.addEventListener('click', onCanvasClick);
+  cvs.addEventListener('touchend', onTouchEnd, { passive: false });
+
+  window.addEventListener('resize', onResize);
+
+  animId = requestAnimationFrame(threeLoop);
+}
+
+function buildGridLines() {
+  // Remove old
+  gridLines.forEach(l => scene.remove(l));
+  gridLines = [];
+
+  const mat = new THREE.LineBasicMaterial({ color: COLOR_GRID, linewidth: 2 });
+  const half = STEP; // distance from center to grid line
+
+  // 2 horizontal + 2 vertical lines
+  [[-half/2 + STEP/2 - STEP, half/2 - STEP/2 + STEP],
+   [-half/2 + STEP/2,         half/2 - STEP/2]].forEach(([x1, x2]) => {
+    // vertical line at x
+    const vGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x1 + STEP/2, 0.06, -half*0.95),
+      new THREE.Vector3(x1 + STEP/2, 0.06,  half*0.95)
+    ]);
+    const vLine = new THREE.Line(vGeo, mat);
+    scene.add(vLine); gridLines.push(vLine);
+    // horizontal line at z = same coordinate
+    const hGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-half*0.95, 0.06, x1 + STEP/2),
+      new THREE.Vector3( half*0.95, 0.06, x1 + STEP/2)
+    ]);
+    const hLine = new THREE.Line(hGeo, mat);
+    scene.add(hLine); gridLines.push(hLine);
+  });
+}
+
+function buildCells() {
+  cellMeshes.forEach(m => scene.remove(m));
+  cellMeshes = []; cellMaterials = [];
+
+  const geo = new THREE.BoxGeometry(CELL_SIZE, 0.18, CELL_SIZE);
+
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const mat = new THREE.MeshStandardMaterial({ color: COLOR_CELL, roughness: 0.3, metalness: 0.05 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((col-1)*STEP, 0, (row-1)*STEP);
+      mesh.receiveShadow = true;
+      mesh.castShadow = false;
+      mesh.userData.cellIndex = row*3 + col;
+      scene.add(mesh);
+      cellMeshes.push(mesh);
+      cellMaterials.push(mat);
+    }
+  }
+}
+
+function spawnPiece(index, player) {
+  const col = index % 3, row = Math.floor(index/3);
+  const x = (col-1)*STEP, z = (row-1)*STEP;
+  const targetY = 0.22;
+  const startY = 7;
+
+  // Group so we can move the whole piece as one unit
+  mesh = new THREE.Group();
+
+  if (player === HUMAN) {
+    // BINUS: 3D X — two crossed bars
+    const mat = new THREE.MeshStandardMaterial({ color: COLOR_BINUS, roughness: 0.2, metalness: 0.3, emissive: 0xfede3e, emissiveIntensity: 0.2 });
+    const barGeo = new THREE.BoxGeometry(1.0, 0.22, 0.22);
+    const bar1 = new THREE.Mesh(barGeo, mat); bar1.rotation.y =  Math.PI / 4;
+    const bar2 = new THREE.Mesh(barGeo, mat); bar2.rotation.y = -Math.PI / 4;
+    bar1.castShadow = true; bar2.castShadow = true;
+    mesh.add(bar1); mesh.add(bar2);
+  } else {
+    // ITB: 3D O — torus
+    const mat = new THREE.MeshStandardMaterial({ color: COLOR_ITB, roughness: 0.2, metalness: 0.4, emissive: 0x1d6fbd, emissiveIntensity: 0.2 });
+    const geo = new THREE.TorusGeometry(0.42, 0.13, 16, 48);
+    const torus = new THREE.Mesh(geo, mat);
+    torus.rotation.x = Math.PI / 2; // lay flat
+    torus.castShadow = true;
+    mesh.add(torus);
+  }
+
+  mesh.position.set(x, startY, z);
+  scene.add(mesh);
+
+  // Add a glow ring on the cell
+  const ringGeo = new THREE.RingGeometry(0.58, 0.7, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color: player===HUMAN ? COLOR_BINUS : COLOR_ITB, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI/2;
+  ring.position.set(x, 0.11, z);
+  scene.add(ring);
+  mesh.userData.ring = ring;
+
+  droppingPieces.push({ mesh, vy: 0, targetY, landed: false });
+  pieceMeshes.push(mesh);
+  pieceMeshes.push(ring);
+}
+
+function onMouseMove(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  updateHover();
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  const rect = renderer.domElement.getBoundingClientRect();
+  const touch = e.changedTouches[0];
+  mouse.x = ((touch.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+  const hit = getHoveredCell();
+  if (hit !== -1) play(hit);
+}
+
+function onCanvasClick() {
+  const hit = getHoveredCell();
+  if (hit !== -1) play(hit);
+}
+
+function getHoveredCell() {
+  if (!raycaster) return -1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(cellMeshes);
+  if (hits.length > 0) return hits[0].object.userData.cellIndex;
+  return -1;
+}
+
+function updateHover() {
+  if (!raycaster || over || aiThinking) return;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(cellMeshes);
+  const hitIdx = hits.length > 0 ? hits[0].object.userData.cellIndex : -1;
+
+  if (hitIdx !== hoveredCell) {
+    // Reset old
+    if (hoveredCell !== -1 && !board[hoveredCell]) {
+      cellMaterials[hoveredCell].color.setHex(COLOR_CELL);
+      cellMeshes[hoveredCell].position.y = 0;
+    }
+    hoveredCell = hitIdx;
+    // Apply new
+    if (hitIdx !== -1 && !board[hitIdx]) {
+      cellMaterials[hitIdx].color.setHex(COLOR_HOVER);
+      cellMeshes[hitIdx].position.y = 0.08; // subtle lift
+    }
+  }
+}
+
+function flashWinCells(combo) {
+  combo.forEach(idx => {
+    cellMaterials[idx].color.setHex(COLOR_WIN_CELL);
+    cellMaterials[idx].emissive = new THREE.Color(0xfede3e);
+    cellMaterials[idx].emissiveIntensity = 0.4;
+  });
+}
+
+let camPanT = 0;
+const CAM_PAN_DUR = 3.0; // seconds
+const CAM_START = new THREE.Vector3(0, 14, 14);
+const CAM_END   = new THREE.Vector3(0, 9, 11);
+
+let clock = new THREE.Clock();
+
+function threeLoop() {
+  animId = requestAnimationFrame(threeLoop);
+  const dt = clock.getDelta();
+
+  // Cinematic camera pan
+  if (!cameraPanDone) {
+    camPanT = Math.min(camPanT + dt / CAM_PAN_DUR, 1);
+    const t = easeOutCubic(camPanT);
+    camera.position.lerpVectors(CAM_START, CAM_END, t);
+    camera.lookAt(0, 0, 0);
+    if (camPanT >= 1) cameraPanDone = true;
+  }
+
+  // Slow idle camera orbit (very subtle)
+  if (cameraPanDone) {
+    const elapsed = clock.elapsedTime;
+    camera.position.x = Math.sin(elapsed * 0.08) * 1.2;
+    camera.position.z = CAM_END.z + Math.cos(elapsed * 0.06) * 0.6;
+    camera.lookAt(0, 0, 0);
+  }
+
+  // Drop physics
+  for (let i = droppingPieces.length - 1; i >= 0; i--) {
+    const dp = droppingPieces[i];
+    if (dp.landed) { droppingPieces.splice(i,1); continue; }
+    dp.vy -= 18 * dt; // gravity
+    dp.mesh.position.y += dp.vy * dt;
+    if (dp.mesh.position.y <= dp.targetY) {
+      dp.mesh.position.y = dp.targetY;
+      // Bounce
+      if (Math.abs(dp.vy) > 1.5) {
+        dp.vy = -dp.vy * 0.35;
+      } else {
+        dp.vy = 0;
+        dp.landed = true;
+      }
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1-t, 3); }
+
+function onResize() {
+  const container = document.getElementById('three-container');
+  const W = container.clientWidth, H = container.clientHeight;
+  camera.aspect = W/H; camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+}
+
+// ══════════════════════════════════════
+// GAME LOGIC
+// ══════════════════════════════════════
+function play(i) {
+  if (over || board[i] || aiThinking) return;
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  document.getElementById('click-hint').style.opacity = '0';
+
+  board[i] = HUMAN; movesThisGame++;
+  spawnPiece(i, HUMAN); soundPlace(HUMAN);
+
+  const wl = checkWin();
+  if (wl || board.every(v=>v)) { endGame(wl, wl?HUMAN:null); return; }
+
+  aiThinking = true;
+  document.getElementById('status').textContent = 'ITB is thinking…';
+  setTimeout(() => {
+    const m = getAIMove();
+    board[m] = AI; movesThisGame++;
+    spawnPiece(m, AI); soundPlace(AI);
+    aiThinking = false;
+    const aw = checkWin();
+    if (aw || board.every(v=>v)) endGame(aw, aw?AI:null);
+    else document.getElementById('status').textContent = 'Your turn';
+  }, 350 + Math.random()*400);
+}
+
+function checkWin() {
+  for(const combo of WIN_COMBOS)
+    if(board[combo[0]]&&board[combo[0]]===board[combo[1]]&&board[combo[1]]===board[combo[2]]) return combo;
+  return null;
+}
+
+function endGame(winLine, winner) {
+  over = true;
+  stats.sessions++; stats.totalMoves+=movesThisGame; stats.gamesWithMoves++;
+  const statusEl = document.getElementById('status');
+  if (winLine) flashWinCells(winLine);
+
+  if (winner===HUMAN) {
+    stats.wins++; stats.streak = stats.streak>0 ? stats.streak+1 : 1;
+    statusEl.textContent='You win! 🎉'; statusEl.className='winner';
+    setTimeout(()=>{ soundWin(); spawnConfetti(); },200);
+  } else if (winner===AI) {
+    stats.losses++; stats.streak = stats.streak<0 ? stats.streak-1 : -1;
+    statusEl.textContent='ITB wins!'; statusEl.className='loser';
+    document.getElementById('trash-talk').textContent = '"'+TRASH_TALK[Math.floor(Math.random()*TRASH_TALK.length)]+'"';
+    document.getElementById('trash-talk').classList.add('show');
+    setTimeout(soundLose,100);
+  } else {
+    stats.draws++; stats.streak=0;
+    statusEl.textContent="It's a draw!"; statusEl.className='winner';
+    setTimeout(soundDraw,100);
+  }
+  updateMetrics();
+  renderLeaderboard('weekly');
+}
+
+function resetGame() {
+  board=Array(9).fill(''); over=false; aiThinking=false; movesThisGame=0;
+  document.getElementById('session-id-badge').textContent='Session #'+(stats.sessions+1);
+  if(cfFrame){cancelAnimationFrame(cfFrame);cf.clearRect(0,0,cfCanvas.width,cfCanvas.height);}
+  document.getElementById('status').textContent='Your turn';
+  document.getElementById('status').className='';
+  document.getElementById('trash-talk').textContent='';
+  document.getElementById('trash-talk').classList.remove('show');
+  document.getElementById('click-hint').style.opacity='1';
+  hoveredCell=-1;
+
+  // Remove all pieces & rings from scene
+  pieceMeshes.forEach(m => scene.remove(m));
+  pieceMeshes=[]; droppingPieces=[];
+
+  // Reset cell colors
+  cellMaterials.forEach(m => {
+    m.color.setHex(COLOR_CELL);
+    m.emissiveIntensity = 0;
+  });
+  cellMeshes.forEach(m => m.position.y = 0);
+}
+
+// ══════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════
+const LB_DATA = {
+  weekly: [
+    { name:'AndrewP',     score:2840, w:18, l:2,  avatar:'A' },
+    { name:'DewiS',       score:2610, w:15, l:4,  avatar:'D' },
+    { name:'BudiR',       score:2390, w:12, l:6,  avatar:'B' },
+    { name:'SariW',       score:2180, w:10, l:8,  avatar:'S' },
+    { name:'FarhanM',     score:1970, w:8,  l:9,  avatar:'F' },
+    { name:'YOU',         score:0,    w:0,  l:0,  avatar:'',  isYou:true },
+    { name:'RahmaK',      score:1450, w:6,  l:11, avatar:'R' },
+  ],
+  monthly: [
+    { name:'TitoG',       score:9120, w:64, l:10, avatar:'T' },
+    { name:'AndrewP',     score:8840, w:58, l:12, avatar:'A' },
+    { name:'MayaL',       score:7650, w:52, l:18, avatar:'M' },
+    { name:'DewiS',       score:7200, w:48, l:20, avatar:'D' },
+    { name:'YOU',         score:0,    w:0,  l:0,  avatar:'',  isYou:true },
+    { name:'HendraP',     score:5800, w:40, l:28, avatar:'H' },
+    { name:'SariW',       score:5100, w:35, l:33, avatar:'S' },
+  ],
+  alltime: [
+    { name:'FazriA',      score:48200, w:320, l:42, avatar:'F' },
+    { name:'TitoG',       score:41000, w:280, l:60, avatar:'T' },
+    { name:'AndrewP',     score:35000, w:230, l:80, avatar:'A' },
+    { name:'MayaL',       score:29000, w:195, l:95, avatar:'M' },
+    { name:'YOU',         score:0,     w:0,   l:0,  avatar:'',  isYou:true },
+    { name:'DewiS',       score:22000, w:148, l:120,avatar:'D' },
+    { name:'BudiR',       score:18000, w:120, l:140,avatar:'B' },
+  ]
+};
+let activeLbTab = 'weekly';
+
+function setLbTab(tab, el) {
+  activeLbTab = tab;
+  document.querySelectorAll('.lb-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderLeaderboard(tab);
+}
+
+function renderLeaderboard(tab) {
+  const data = JSON.parse(JSON.stringify(LB_DATA[tab]));
+  const youIdx = data.findIndex(r=>r.isYou);
+  if (youIdx !== -1) {
+    const total = stats.wins+stats.losses+stats.draws;
+    data[youIdx].name = currentUser || 'You';
+    data[youIdx].score = stats.wins*150 + stats.draws*40;
+    data[youIdx].w = stats.wins;
+    data[youIdx].l = stats.losses;
+    data[youIdx].avatar = (currentUser||'Y')[0].toUpperCase();
+    // Re-sort by score
+    data.sort((a,b)=>b.score-a.score);
+  }
+
+  const medals = ['gold','silver','bronze'];
+  const medalEmoji = ['🥇','🥈','🥉'];
+
+  const html = data.map((row,i) => {
+    const rankClass = i<3 ? medals[i] : '';
+    const rankLabel = i<3 ? medalEmoji[i] : '#'+(i+1);
+    const isYou = row.isYou || row.name === (currentUser||'You');
+    const winRate = (row.w+row.l) ? Math.round(row.w/(row.w+row.l)*100) : 0;
+    const bgColor = isYou ? 'me' : '';
+    return `<div class="lb-row ${bgColor}">
+      <div class="lb-rank ${rankClass}">${rankLabel}</div>
+      <div class="lb-avatar" style="background:${isYou?'#fede3e':'#000'};color:${isYou?'#000':'#fede3e'}">${row.avatar}</div>
+      <div class="lb-info">
+        <div class="lb-name">${row.name} ${isYou?'<span class="lb-you-badge">YOU</span>':''}</div>
+        <div class="lb-stat">${row.w}W · ${row.l}L · ${winRate}% WR</div>
+      </div>
+      <div class="lb-score">${row.score.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('lb-list').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// MODALS & TELEGRAM
+// ══════════════════════════════════════
+function openPricing()  { document.getElementById('pricing-modal').classList.add('show'); }
+function closePricing() { document.getElementById('pricing-modal').classList.remove('show'); }
+document.getElementById('pricing-modal').addEventListener('click', e=>{if(e.target===e.currentTarget)closePricing();});
+
+const TG_TOKEN = '8751702275:AAHvO7ODVoQy16TRJge9dqkgtBqct7SiN_U';
+function openTgModal()  { document.getElementById('tg-modal-overlay').classList.add('show'); document.getElementById('tg-feedback').textContent=''; }
+function closeTgModal() { document.getElementById('tg-modal-overlay').classList.remove('show'); }
+document.getElementById('tg-modal-overlay').addEventListener('click', e=>{if(e.target===e.currentTarget)closeTgModal();});
+
+async function sendTelegram() {
+  const chatId = document.getElementById('tg-chat-id').value.trim();
+  const fb = document.getElementById('tg-feedback');
+  if(!chatId){fb.textContent='Please enter your Chat ID.';fb.className='err';return;}
+  localStorage.setItem('tg_chat_id',chatId);
+  const t=stats.wins+stats.losses+stats.draws;
+  const winPct=t?Math.round(stats.wins/t*100):0;
+  const avg=stats.gamesWithMoves?(stats.totalMoves/stats.gamesWithMoves).toFixed(1):'—';
+  const streakText=stats.streak>0?`🔥 ${stats.streak} win streak`:stats.streak<0?`😬 ${Math.abs(stats.streak)} loss streak`:'— no streak';
+  const msg=`🎮 *GameIQ Pro 3D — Game Stats Report*\n\n👤 Player: \`${currentUser||'Anonymous'}\`\n📅 Date: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}\n🤖 AI Difficulty: *${difficultyNames[difficulty]}*\n🎲 Engine: *Three.js 3D WebGL*\n\n📊 *Session Summary*\n• Total Games: ${t}\n• Wins: ${stats.wins} ✅\n• Losses: ${stats.losses} ❌\n• Draws: ${stats.draws} 🤝\n• Win Rate: *${winPct}%*\n• Avg Moves/Game: ${avg}\n• Streak: ${streakText}\n\n_Sent from GameIQ Pro Enterprise Platform_`;
+  fb.textContent='Sending…'; fb.className='';
+  try {
+    const res=await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:msg,parse_mode:'Markdown'})});
+    const data=await res.json();
+    if(data.ok){fb.textContent='✓ Stats sent!';fb.className='ok';showToast('Stats sent to Telegram!');setTimeout(closeTgModal,1500);}
+    else{fb.textContent='Error: '+(data.description||'Unknown');fb.className='err';}
+  } catch(e){fb.textContent='Network error.';fb.className='err';}
+}
+
+let toastTimer=null;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+
+updateMetrics();
+</script>
+<script src="nav.js"></script>
+</body>
+</html>

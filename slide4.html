@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tic-Tac-Toe vs AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Red Hat Display', sans-serif;
+      background: #f2f0f0;
+      color: #000000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    .revou-accent {
+      width: 64px; height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+
+    h1 {
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 18px;
+    }
+
+    /* Difficulty slider */
+    .difficulty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .difficulty label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #555;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #999;
+      width: 48px;
+      text-align: center;
+    }
+    .slider-label.active-label { color: #000; }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 140px;
+      height: 4px;
+      border-radius: 2px;
+      background: #ccc;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #fede3e;
+      border: 2px solid #000;
+      cursor: pointer;
+    }
+    #difficulty-display {
+      font-size: 14px;
+      font-weight: 700;
+      background: #fede3e;
+      padding: 3px 14px;
+      border-radius: 20px;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    /* Status */
+    #status {
+      font-size: 16px;
+      font-weight: 400;
+      color: #333;
+      margin-bottom: 16px;
+      min-height: 24px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    #status.winner {
+      font-weight: 700;
+      font-size: 18px;
+      color: #000;
+      background: #fede3e;
+      padding: 8px 20px;
+      border-radius: 8px;
+      animation: statusPop 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+    #status.loser {
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      background: #000;
+      padding: 8px 20px;
+      border-radius: 8px;
+      animation: statusPop 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    /* Trash talk bubble */
+    #trash-talk {
+      font-size: 13px;
+      font-style: italic;
+      color: #555;
+      margin-bottom: 14px;
+      min-height: 20px;
+      text-align: center;
+      max-width: 360px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    #trash-talk.show { opacity: 1; }
+
+    /* Board */
+    #board {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 110px);
+      gap: 8px;
+      background: #000;
+      padding: 8px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+    }
+    .cell {
+      width: 110px; height: 110px;
+      border: none;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      padding: 12px;
+    }
+    .cell:hover:not(.taken) { background: #fef5bc; transform: scale(0.97); }
+    .cell.taken { cursor: default; }
+    .cell.blocked { cursor: not-allowed; }
+    .cell img { width: 72px; height: 72px; object-fit: contain; }
+
+    @keyframes bounce {
+      0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+      50%  { transform: scale(1.3) rotate(4deg); opacity: 1; }
+      70%  { transform: scale(0.88) rotate(-2deg); }
+      85%  { transform: scale(1.08) rotate(1deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .cell img.bounce {
+      animation: bounce 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+    }
+
+    @keyframes statusPop {
+      0%   { transform: scale(0.8); opacity: 0; }
+      60%  { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes winPulse {
+      0%, 100% { background: white; }
+      50%       { background: #fede3e; }
+    }
+    .cell.win-cell { animation: winPulse 0.6s ease-in-out 3; }
+
+    /* AI thinking indicator */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    #board.thinking .cell:not(.taken) {
+      animation: pulse 0.7s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    #reset-btn {
+      font-family: 'Red Hat Display', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 32px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #fede3e;
+      color: #000;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    #reset-btn:hover { background: #f5d200; transform: scale(0.98); }
+
+    #confetti-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="revou-accent">
+    <img src="Revou Logo.png" alt="RevoU" style="width:48px;height:48px;object-fit:contain;">
+  </div>
+
+  <h1>Tic-Tac-Toe vs AI</h1>
+  <p class="subtitle">You are <strong>BINUS</strong> &nbsp;·&nbsp; AI is <strong>ITB</strong></p>
+
+  <div class="difficulty">
+    <label>Difficulty</label>
+    <div class="slider-row">
+      <span class="slider-label" id="lbl-easy">Easy</span>
+      <input type="range" id="difficulty-slider" min="0" max="2" step="1" value="2" oninput="onDifficultyChange()">
+      <span class="slider-label" id="lbl-hard">Hard</span>
+    </div>
+    <div id="difficulty-display">Hard</div>
+  </div>
+
+  <div id="status">Your turn</div>
+  <div id="trash-talk"></div>
+
+  <div id="board">
+    <button class="cell" onclick="play(0)"></button>
+    <button class="cell" onclick="play(1)"></button>
+    <button class="cell" onclick="play(2)"></button>
+    <button class="cell" onclick="play(3)"></button>
+    <button class="cell" onclick="play(4)"></button>
+    <button class="cell" onclick="play(5)"></button>
+    <button class="cell" onclick="play(6)"></button>
+    <button class="cell" onclick="play(7)"></button>
+    <button class="cell" onclick="play(8)"></button>
+  </div>
+
+  <button id="reset-btn" onclick="reset()">New Game</button>
+
+  <script>
+    // ── Audio ────────────────────────────────────────────────────────────────
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, type, duration, gainVal = 0.3) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function soundPlace(player) {
+      const freq = player === HUMAN ? 520 : 380;
+      playTone(freq, 'sine', 0.18, 0.25);
+      setTimeout(() => playTone(freq * 1.25, 'sine', 0.12, 0.15), 80);
+    }
+
+    function soundWin() {
+      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 'triangle', 0.3, 0.35), i * 100));
+    }
+
+    function soundLose() {
+      // Sad descending trombone
+      [400, 350, 280, 220].forEach((f, i) => setTimeout(() => playTone(f, 'sawtooth', 0.35, 0.28), i * 120));
+    }
+
+    function soundDraw() {
+      playTone(300, 'sawtooth', 0.4, 0.2);
+      setTimeout(() => playTone(250, 'sawtooth', 0.5, 0.2), 150);
+    }
+
+    // ── Confetti ─────────────────────────────────────────────────────────────
+    const canvas = document.getElementById('confetti-canvas');
+    const c = canvas.getContext('2d');
+    let particles = [];
+    let animFrame = null;
+    const confettiColors = ['#fede3e', '#000000', '#ef3d58', '#fcb031', '#1d6fbd', '#f65616'];
+
+    function spawnConfetti() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      particles = [];
+      for (let i = 0; i < 160; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: -10 - Math.random() * 200,
+          w: 8 + Math.random() * 8,
+          h: 6 + Math.random() * 6,
+          color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+          angle: Math.random() * Math.PI * 2,
+          spin: (Math.random() - 0.5) * 0.2,
+          vx: (Math.random() - 0.5) * 4,
+          vy: 2 + Math.random() * 4,
+          opacity: 1
+        });
+      }
+      if (animFrame) cancelAnimationFrame(animFrame);
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      c.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.angle += p.spin;
+        if (p.y < canvas.height + 20) alive = true;
+        if (p.y > canvas.height - 100) p.opacity -= 0.02;
+        c.save();
+        c.globalAlpha = Math.max(0, p.opacity);
+        c.translate(p.x, p.y); c.rotate(p.angle);
+        c.fillStyle = p.color;
+        c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        c.restore();
+      }
+      if (alive) animFrame = requestAnimationFrame(animateConfetti);
+      else c.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // ── Constants ────────────────────────────────────────────────────────────
+    const HUMAN = 'BINUS';
+    const AI    = 'ITB';
+    const logos = {
+      BINUS: 'images/Logo_Binus_University.png',
+      ITB:   'images/Logo_Institut_Teknologi_Bandung.png'
+    };
+    const WIN_COMBOS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+    const TRASH_TALK = [
+      "Did you just... try that? Bold move. Wrong move.",
+      "I've seen better strategy from a random number generator.",
+      "ITB's algorithm sends its regards. You're welcome.",
+      "Was that your plan? Impressive in its own terrible way.",
+      "Maybe stick to PowerPoint. Just saying.",
+      "That's okay, not everyone can beat me. Most can't.",
+      "GG. Well, the first G was generous.",
+      "I calculated every possible game. You lost all of them.",
+      "Error 404: Winning strategy not found.",
+      "Minimax says hi. You lose."
+    ];
+
+    // ── Game state ───────────────────────────────────────────────────────────
+    let board = Array(9).fill('');
+    let over = false;
+    let aiThinking = false;
+    let difficulty = 2; // 0=Easy 1=Medium 2=Hard
+
+    const difficultyNames = ['Easy', 'Medium', 'Hard'];
+
+    function onDifficultyChange() {
+      difficulty = parseInt(document.getElementById('difficulty-slider').value);
+      document.getElementById('difficulty-display').textContent = difficultyNames[difficulty];
+      ['lbl-easy', 'lbl-hard'].forEach(id => document.getElementById(id).classList.remove('active-label'));
+      if (difficulty === 0) document.getElementById('lbl-easy').classList.add('active-label');
+      if (difficulty === 2) document.getElementById('lbl-hard').classList.add('active-label');
+      reset();
+    }
+
+    // ── Minimax ──────────────────────────────────────────────────────────────
+    function boardWinner(b) {
+      for (const [a, x, y] of WIN_COMBOS)
+        if (b[a] && b[a] === b[x] && b[x] === b[y]) return b[a];
+      return b.every(v => v) ? 'draw' : null;
+    }
+
+    function minimax(b, isMaximizing, depth, alpha, beta) {
+      const result = boardWinner(b);
+      if (result === AI)    return 10 - depth;
+      if (result === HUMAN) return depth - 10;
+      if (result === 'draw') return 0;
+
+      if (isMaximizing) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = AI;
+            best = Math.max(best, minimax(b, false, depth + 1, alpha, beta));
+            b[i] = '';
+            alpha = Math.max(alpha, best);
+            if (beta <= alpha) break;
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = HUMAN;
+            best = Math.min(best, minimax(b, true, depth + 1, alpha, beta));
+            b[i] = '';
+            beta = Math.min(beta, best);
+            if (beta <= alpha) break;
+          }
+        }
+        return best;
+      }
+    }
+
+    function getBestMove(b) {
+      let bestVal = -Infinity, bestMove = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = AI;
+          const val = minimax(b, false, 0, -Infinity, Infinity);
+          b[i] = '';
+          if (val > bestVal) { bestVal = val; bestMove = i; }
+        }
+      }
+      return bestMove;
+    }
+
+    function getAIMove() {
+      const empty = board.map((v, i) => v ? null : i).filter(i => i !== null);
+      if (difficulty === 0) {
+        // Easy: fully random
+        return empty[Math.floor(Math.random() * empty.length)];
+      }
+      if (difficulty === 1) {
+        // Medium: 50% best, 50% random
+        return Math.random() < 0.5
+          ? getBestMove([...board])
+          : empty[Math.floor(Math.random() * empty.length)];
+      }
+      // Hard: always best
+      return getBestMove([...board]);
+    }
+
+    // ── Render helpers ───────────────────────────────────────────────────────
+    function placeToken(index, player) {
+      const cell = document.querySelectorAll('.cell')[index];
+      const img = document.createElement('img');
+      img.src = logos[player];
+      img.alt = player;
+      img.classList.add('bounce');
+      cell.innerHTML = '';
+      cell.appendChild(img);
+      cell.classList.add('taken');
+    }
+
+    function endGame(winLine, winner) {
+      over = true;
+      const statusEl = document.getElementById('status');
+      const cells = document.querySelectorAll('.cell');
+
+      if (winLine) {
+        winLine.forEach(idx => cells[idx].classList.add('win-cell'));
+      }
+
+      if (winner === HUMAN) {
+        statusEl.textContent = 'You win! 🎉';
+        statusEl.className = 'winner';
+        setTimeout(() => { soundWin(); spawnConfetti(); }, 200);
+      } else if (winner === AI) {
+        const taunt = TRASH_TALK[Math.floor(Math.random() * TRASH_TALK.length)];
+        statusEl.textContent = 'ITB wins!';
+        statusEl.className = 'loser';
+        const tt = document.getElementById('trash-talk');
+        tt.textContent = '"' + taunt + '"';
+        tt.classList.add('show');
+        setTimeout(soundLose, 100);
+      } else {
+        statusEl.textContent = "It's a draw!";
+        statusEl.className = 'winner';
+        setTimeout(soundDraw, 100);
+      }
+    }
+
+    // ── Player move ──────────────────────────────────────────────────────────
+    function play(i) {
+      if (over || board[i] || aiThinking) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      board[i] = HUMAN;
+      placeToken(i, HUMAN);
+      soundPlace(HUMAN);
+
+      const winLine = checkWin();
+      if (winLine || board.every(v => v)) {
+        endGame(winLine, winLine ? HUMAN : null);
+        return;
+      }
+
+      // AI turn
+      aiThinking = true;
+      document.getElementById('status').textContent = 'ITB is thinking…';
+      document.getElementById('board').classList.add('thinking');
+
+      const delay = 300 + Math.random() * 400;
+      setTimeout(() => {
+        const aiMove = getAIMove();
+        board[aiMove] = AI;
+        placeToken(aiMove, AI);
+        soundPlace(AI);
+        document.getElementById('board').classList.remove('thinking');
+        aiThinking = false;
+
+        const aiWinLine = checkWin();
+        if (aiWinLine || board.every(v => v)) {
+          endGame(aiWinLine, aiWinLine ? AI : null);
+        } else {
+          document.getElementById('status').textContent = 'Your turn';
+        }
+      }, delay);
+    }
+
+    function checkWin() {
+      for (const combo of WIN_COMBOS)
+        if (board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[1]] === board[combo[2]])
+          return combo;
+      return null;
+    }
+
+    // ── Reset ────────────────────────────────────────────────────────────────
+    function reset() {
+      board = Array(9).fill('');
+      over = false;
+      aiThinking = false;
+      if (animFrame) { cancelAnimationFrame(animFrame); c.clearRect(0, 0, canvas.width, canvas.height); }
+      document.getElementById('board').classList.remove('thinking');
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.innerHTML = '';
+        cell.classList.remove('taken', 'win-cell', 'blocked');
+      });
+      document.getElementById('status').textContent = 'Your turn';
+      document.getElementById('status').className = '';
+      const tt = document.getElementById('trash-talk');
+      tt.textContent = '';
+      tt.classList.remove('show');
+    }
+  </script>
+  <script src="nav.js"></script>
+</body>
+</html>

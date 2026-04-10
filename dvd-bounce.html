@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RevoU — DVD Bounce</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .bouncing-logo {
+      position: absolute;
+      user-select: none;
+      pointer-events: none;
+      transition: filter 0.1s ease;
+    }
+
+    #logo-revou {
+      width: 110px;
+    }
+
+    #logo-claude {
+      width: 140px;
+      pointer-events: auto;
+      cursor: pointer !important;
+      /* larger tap target via padding trick */
+      padding: 16px;
+      margin: -16px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* Corner flash overlay */
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: #fede3e;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.1s;
+    }
+
+    /* Corner message */
+    #corner-msg {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #000;
+      font-family: 'Red Hat Display', 'Segoe UI', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 11;
+      text-align: center;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="screen">
+    <img id="logo-revou" class="bouncing-logo" src="Revou Logo.png" alt="RevoU Logo" draggable="false">
+    <img id="logo-claude" class="bouncing-logo" src="images/Logo_ClaudeCode.png" alt="Claude Code Logo" draggable="false">
+  </div>
+  <div id="flash"></div>
+  <div id="corner-msg">🎉 Corner Hit!</div>
+
+  <script>
+    const flash = document.getElementById('flash');
+    const cornerMsg = document.getElementById('corner-msg');
+
+    // RevoU brand color filters
+    const revouColors = [
+      'none',
+      'sepia(1) saturate(8) hue-rotate(295deg) brightness(1.1)',
+      'sepia(1) saturate(4) hue-rotate(15deg) brightness(1.05)',
+      'sepia(1) saturate(4) hue-rotate(220deg) brightness(0.9)',
+      'sepia(1) saturate(4) hue-rotate(118deg) brightness(0.95)',
+      'sepia(1) saturate(6) hue-rotate(175deg) brightness(1.1)',
+    ];
+
+    // Claude Code color filters (logo is salmon/orange on dark — tint with hue shifts)
+    const claudeColors = [
+      'none',
+      'hue-rotate(40deg) brightness(1.1)',
+      'hue-rotate(80deg) brightness(1.05)',
+      'hue-rotate(160deg) brightness(1.1)',
+      'hue-rotate(220deg) brightness(1.05)',
+      'hue-rotate(300deg) brightness(1.1)',
+    ];
+
+    function makeBouncer(imgEl, w, colors, startX, startY, vx, vy) {
+      let x = startX;
+      let y = startY;
+      let colorIdx = 0;
+      let h = w; // will be updated after load
+
+      imgEl.onload = () => {
+        h = imgEl.naturalHeight * (w / imgEl.naturalWidth);
+      };
+
+      imgEl.style.filter = colors[colorIdx];
+      imgEl.style.left = x + 'px';
+      imgEl.style.top  = y + 'px';
+
+      return {
+        tick() {
+          const W = window.innerWidth;
+          const H = window.innerHeight;
+          const maxX = W - w;
+          const maxY = H - h;
+
+          x += vx;
+          y += vy;
+
+          let hitX = false, hitY = false;
+
+          if (x <= 0)      { x = 0;    vx =  Math.abs(vx); hitX = true; }
+          else if (x >= maxX) { x = maxX; vx = -Math.abs(vx); hitX = true; }
+
+          if (y <= 0)      { y = 0;    vy =  Math.abs(vy); hitY = true; }
+          else if (y >= maxY) { y = maxY; vy = -Math.abs(vy); hitY = true; }
+
+          if (hitX || hitY) {
+            colorIdx = (colorIdx + 1) % colors.length;
+            imgEl.style.filter = colors[colorIdx];
+          }
+
+          imgEl.style.left = x + 'px';
+          imgEl.style.top  = y + 'px';
+
+          return { hitX, hitY };
+        }
+      };
+    }
+
+    const revou  = makeBouncer(document.getElementById('logo-revou'),  110, revouColors,  80,  80,  2.2,  1.8);
+    const claude = makeBouncer(document.getElementById('logo-claude'), 140, claudeColors, 300, 200, -1.9,  2.4);
+
+    let flashTimeout = null;
+    function triggerCornerFlash() {
+      if (flashTimeout) return;
+      flash.style.opacity = '0.35';
+      cornerMsg.style.opacity = '1';
+      flashTimeout = setTimeout(() => {
+        flash.style.opacity = '0';
+        cornerMsg.style.opacity = '0';
+        flashTimeout = null;
+      }, 700);
+    }
+
+    function animate() {
+      const r = revou.tick();
+      const c = claude.tick();
+
+      if ((r.hitX && r.hitY) || (c.hitX && c.hitY)) {
+        triggerCornerFlash();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+
+    // Navigate on both click and touch (no 300ms delay)
+    const claudeEl = document.getElementById('logo-claude');
+    function goNext(e) {
+      e.preventDefault();
+      window.location.href = 'comparison.html';
+    }
+    claudeEl.addEventListener('click', goNext);
+    claudeEl.addEventListener('touchend', goNext, { passive: false });
+  </script>
+  <script src="nav.js"></script>
+</body>
+</html>

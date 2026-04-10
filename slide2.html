@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tic-Tac-Toe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Red Hat Display', sans-serif;
+      background: #f2f0f0;
+      color: #000000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* RevoU logo accent circle */
+    .revou-accent {
+      width: 64px; height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    h1 {
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    /* Player indicators */
+    .players {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin: 20px 0;
+    }
+    .player {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: white;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .player.active {
+      border-color: #fede3e;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(254,222,62,0.4);
+    }
+    .player img { width: 56px; height: 56px; object-fit: contain; }
+    .player span { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    .vs {
+      font-weight: 700;
+      font-size: 18px;
+      color: #000;
+      font-family: 'Red Hat Display', sans-serif;
+    }
+
+    /* Status */
+    #status {
+      font-size: 16px;
+      font-weight: 400;
+      color: #333;
+      margin-bottom: 20px;
+      min-height: 24px;
+    }
+    #status.winner {
+      font-weight: 700;
+      font-size: 18px;
+      color: #000;
+      background: #fede3e;
+      padding: 8px 20px;
+      border-radius: 8px;
+    }
+
+    /* Board */
+    #board {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 110px);
+      gap: 8px;
+      background: #000;
+      padding: 8px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+    }
+    .cell {
+      width: 110px; height: 110px;
+      border: none;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      padding: 12px;
+    }
+    .cell:hover:not(.taken) { background: #fef5bc; transform: scale(0.97); }
+    .cell.taken { cursor: default; }
+    .cell img { width: 72px; height: 72px; object-fit: contain; }
+
+    /* Reset button */
+    #reset-btn {
+      font-family: 'Red Hat Display', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 32px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #fede3e;
+      color: #000;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    #reset-btn:hover { background: #f5d200; transform: scale(0.98); }
+  </style>
+</head>
+<body>
+
+  <div class="revou-accent">
+    <img src="Revou Logo.png" alt="RevoU" style="width:48px;height:48px;object-fit:contain;">
+  </div>
+
+  <h1>Tic-Tac-Toe</h1>
+
+<div id="status">BINUS's turn</div>
+
+  <div id="board">
+    <button class="cell" onclick="play(0)"></button>
+    <button class="cell" onclick="play(1)"></button>
+    <button class="cell" onclick="play(2)"></button>
+    <button class="cell" onclick="play(3)"></button>
+    <button class="cell" onclick="play(4)"></button>
+    <button class="cell" onclick="play(5)"></button>
+    <button class="cell" onclick="play(6)"></button>
+    <button class="cell" onclick="play(7)"></button>
+    <button class="cell" onclick="play(8)"></button>
+  </div>
+
+  <button id="reset-btn" onclick="reset()">New Game</button>
+
+  <script>
+    const BINUS = 'BINUS';
+    const ITB = 'ITB';
+    const logos = {
+      BINUS: 'images/Logo_Binus_University.png',
+      ITB: 'images/Logo_Institut_Teknologi_Bandung.png'
+    };
+
+    let board = Array(9).fill('');
+    let current = BINUS;
+    let over = false;
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+    function play(i) {
+      if (over || board[i]) return;
+      board[i] = current;
+      const cell = document.querySelectorAll('.cell')[i];
+      cell.innerHTML = `<img src="${logos[current]}" alt="${current}">`;
+      cell.classList.add('taken');
+
+      const winner = checkWin();
+      const statusEl = document.getElementById('status');
+      if (winner) {
+        statusEl.textContent = winner + ' wins!';
+        statusEl.className = 'winner';
+        over = true;
+        setActive(null);
+      } else if (board.every(c => c)) {
+        statusEl.textContent = "It's a draw!";
+        statusEl.className = 'winner';
+        over = true;
+        setActive(null);
+      } else {
+        current = current === BINUS ? ITB : BINUS;
+        statusEl.textContent = current + "'s turn";
+        statusEl.className = '';
+        setActive(current);
+      }
+    }
+
+    function checkWin() {
+      for (const [a,b,c] of wins)
+        if (board[a] && board[a] === board[b] && board[b] === board[c]) return board[a];
+      return null;
+    }
+
+    function setActive(player) {
+      document.getElementById('player-binus').classList.toggle('active', player === BINUS);
+      document.getElementById('player-itb').classList.toggle('active', player === ITB);
+    }
+
+    function reset() {
+      board = Array(9).fill('');
+      current = BINUS;
+      over = false;
+      document.querySelectorAll('.cell').forEach(c => { c.innerHTML = ''; c.classList.remove('taken'); });
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = "BINUS's turn";
+      statusEl.className = '';
+      setActive(BINUS);
+    }
+  </script>
+  <script src="nav.js"></script>
+</body>
+</html>
