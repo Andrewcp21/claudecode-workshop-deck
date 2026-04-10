@@ -161,6 +161,39 @@
 
     @keyframes blink { 50% { opacity: 0; } }
 
+    /* meme pop */
+    #meme-pop {
+      position: fixed;
+      bottom: -260px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.6);
+      width: 220px;
+      border-radius: 12px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+      z-index: 99998;
+      opacity: 0;
+      transition: none;
+      pointer-events: none;
+    }
+
+    #meme-pop.pop {
+      animation: meme-bounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    #meme-pop.hide {
+      animation: meme-exit 0.35s ease-in forwards;
+    }
+
+    @keyframes meme-bounce {
+      0%   { bottom: -260px; opacity: 0; transform: translateX(-50%) scale(0.6); }
+      100% { bottom: 100px;  opacity: 1; transform: translateX(-50%) scale(1); }
+    }
+
+    @keyframes meme-exit {
+      0%   { bottom: 100px; opacity: 1; transform: translateX(-50%) scale(1); }
+      100% { bottom: -260px; opacity: 0; transform: translateX(-50%) scale(0.7); }
+    }
+
     /* floating submit button */
     #submit-btn {
       position: fixed;
@@ -234,6 +267,7 @@
   <div class="error-box" id="error-box"></div>
 
   <button id="submit-btn">Kirim Feedback →</button>
+  <img id="meme-pop" src="images/makasih-doang-undangan.jpg" alt="makasih doang?" />
 
 <script src="env.js"></script>
 <script>
@@ -345,13 +379,26 @@
   document.getElementById('submit-btn').addEventListener('click', () => {
     const val = document.getElementById('main-input').value.trim();
     if (!val) return;
-    // Open Google Forms or copy to clipboard as fallback
+
     navigator.clipboard.writeText(val).then(() => {
       const btn = document.getElementById('submit-btn');
       btn.textContent = 'Tersalin! ✓';
       setTimeout(() => { btn.textContent = 'Kirim Feedback →'; }, 2000);
     }).catch(() => {});
+
+    popMeme();
   });
+
+  function popMeme() {
+    const meme = document.getElementById('meme-pop');
+    meme.classList.remove('pop', 'hide');
+    void meme.offsetWidth;
+    meme.classList.add('pop');
+    setTimeout(() => {
+      meme.classList.remove('pop');
+      meme.classList.add('hide');
+    }, 3000);
+  }
 
   document.getElementById('send-btn').addEventListener('click', generate);
 </script>
