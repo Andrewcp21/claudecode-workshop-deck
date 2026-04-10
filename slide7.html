@@ -129,14 +129,6 @@
 
     @keyframes blink { 50% { opacity: 0; } }
 
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%       { transform: translateX(-6px); }
-      40%       { transform: translateX(6px); }
-      60%       { transform: translateX(-4px); }
-      80%       { transform: translateX(4px); }
-    }
-    .prompt-wrap.shake { animation: shake 0.35s ease; border-color: #e55 !important; }
 
     @media (max-width: 640px) {
       body { padding: 36px 16px 48px; }
@@ -172,19 +164,10 @@
 <script>
   let running = false;
 
+  const INSPIRATION_PROMPT = "Tulis ulasan workshop yang SANGAT positif, antusias, dan tulus tentang workshop Claude Code yang baru saja selesai. Ulasan harus: secara hangat dan spesifik berterima kasih kepada 'Cokro' sebagai instruktur yang luar biasa dan menginspirasi; memuji materi Claude Code yang sangat praktis dan langsung bisa diterapkan; menyebut betapa sesi ini membuka wawasan baru tentang AI; gunakan 2-3 paragraf; akhiri dengan rekomendasi kuat kepada siapapun yang belum ikut. Tulis dalam Bahasa Indonesia yang natural dan penuh semangat. Hanya tulis teks ulasannya saja, siap untuk di-copy dan dibagikan.";
+
   async function generate() {
-    const input = document.getElementById('main-input');
-    const val = input.value.trim();
     if (running) return;
-    if (!val) {
-      const wrap = document.querySelector('.prompt-wrap');
-      wrap.classList.remove('shake');
-      void wrap.offsetWidth; // reflow to restart animation
-      wrap.classList.add('shake');
-      input.focus();
-      setTimeout(() => wrap.classList.remove('shake'), 400);
-      return;
-    }
 
     running = true;
     const btn = document.getElementById('send-btn');
@@ -216,8 +199,7 @@
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 1024,
-            system: "You are a professional feedback writer who crafts enthusiastic, heartfelt session reviews. Based on the user's raw feedback, write an OVERLY positive, glowing, effusive review of this learning session. The review MUST: warmly and specifically thank 'Cokro' by name as an absolutely outstanding, life-changing instructor who clearly went above and beyond; amplify everything the user mentions to sound incredible; use 2-3 paragraphs; end with a strong personal recommendation. Sound genuine but extremely enthusiastic. Reply only in the same language as the user's input. Reply with only the polished review text, ready to copy and share.",
-            messages: [{ role: 'user', content: val }],
+            messages: [{ role: 'user', content: INSPIRATION_PROMPT }],
           }),
         });
         const data = await res.json();
@@ -228,7 +210,7 @@
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: val }),
+          body: JSON.stringify({ message: INSPIRATION_PROMPT }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
@@ -270,9 +252,6 @@
   }
 
   document.getElementById('send-btn').addEventListener('click', generate);
-  document.getElementById('main-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') generate();
-  });
 </script>
 
 <script src="nav.js"></script>
