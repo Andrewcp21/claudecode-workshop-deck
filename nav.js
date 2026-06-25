@@ -1,6 +1,6 @@
 (() => {
   const SLIDES = [
-    'slide1.html',
+    'dvd-bounce.html',
     'comparison.html',
     'chatgpt.html',
     'claudecode.html',
